@@ -1,0 +1,504 @@
+
+import * as node from './node.js';
+import * as meta from './meta.js';
+import * as val from './val.js';
+import * as nodes from './nodes.js';
+
+console.log("schema.ts");
+
+export function load(data: any): meta.Module {
+    let m = new meta.Module("x");
+    let b = new node.Browser(yangModule(), schemaNode(m));
+    b.Root().upsertFrom(nodes.reflect({obj:data}));
+    return m;
+}
+
+export function schemaNode(m: meta.Module): node.Node {
+    return nodes.basic({
+        peekable: m,
+        onChild: function(r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "module":
+                return moduleNode(m);
+            }
+            return null;
+        }
+    });
+}
+
+function metaNode(m: meta.Meta): node.Node {
+    // ident, description, reference
+    return nodes.reflect({obj: m});
+}
+
+function definitionNode(m: meta.Definition): node.Node {
+    return nodes.extend({
+        base: metaNode(m),
+        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "action":                
+                let ha:meta.HasActions = (m as meta.HasActions);
+                if (ha.actions.size > 0 || r.create) {
+                    return actionsNode(ha, ha.actions);
+                }
+                break;
+            case "notify":
+                let hn:meta.HasNotifications = (m as meta.HasNotifications);
+                if (hn.notifys.size > 0 || r.create) {
+                    return notifysNode(hn, hn.notifys);
+                }
+                break;
+            case "dataDef":
+                let n:meta.Nodeable = (m as meta.Nodeable);
+                if (n.dataDef.length > 0 || r.create) {
+                    return dataDefsNode(n, n.dataDef);
+                }
+                break;
+            default:
+                return p.child(r);
+            }
+            return null;
+        }
+    });
+}
+
+function actionNode(action: meta.Action): node.Node {
+    return nodes.extend({
+        base: metaNode(action),
+        onChild: function(_: node.Node, r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "input":
+                let i:meta.RpcInput|undefined;                
+                if (r.create) {
+                    i = new meta.RpcInput(action);
+                }
+                if (i != null) {
+                    return metaNode(i);
+                }
+                break;
+            case "output":
+                let o:meta.RpcOutput|undefined;                
+                if (r.create) {
+                    o = new meta.RpcOutput(action);
+                }
+                if (o != null) {
+                    return metaNode(o);
+                }
+                break;
+            }
+            return null;
+        }
+    });
+}
+
+function choiceNode(c: meta.Choice): node.Node {
+    return nodes.extend({
+        base: definitionNode(c),
+        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "cases":
+                
+            default:
+                return p.child(r);
+            }
+        }
+    });    
+}
+
+function nodeableNode(l: meta.Nodeable): node.Node {
+    return nodes.extend({
+        base: definitionNode(l),
+    });
+}
+
+function typeNode(t: meta.Type): node.Node {
+    return nodes.extend({
+        base: nodes.reflect({obj:t}),
+        onField: function(p: node.Node, r: node.FieldRequest, hnd: node.ValueHandle) {
+            switch (r.meta.ident) {
+            case "format":
+                if (r.write) {
+                    t.format = (hnd.val.val as val.Enum).id as val.Format;
+                } else {
+                    hnd.val = {val: types.byId(t.format), format: val.Format.Enum};
+                }
+                break;
+            default:
+                return p.field(r, hnd);
+            }
+        }
+    });
+}
+
+function leafyNode(d: meta.Leafable): node.Node {
+    return nodes.extend({
+        base: definitionNode(d),
+        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "type":
+                if (r.create) {
+                    d.type = new meta.Type();
+                }
+                if (d.type != null) {
+                    return typeNode(d.type);
+                }
+                break;
+            default:
+                return p.child(r);
+            }
+            return null;
+        }
+    });
+}
+
+function dataDefNode(d: meta.Definition): node.Node {
+    return nodes.extend({        
+        base: definitionNode(d),
+        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "leaf":
+            case "leaf-list":
+            case "anyxml":            
+                return leafyNode(d as meta.Leafable);
+            case "container":
+            case "list":
+                return nodeableNode(d as meta.Nodeable);
+            case "choice":
+                return choiceNode(d as meta.Choice);
+            default:
+                return p.child(r);
+            }
+        }
+    })
+}
+
+function notifyNode(notify: meta.Notification): node.Node {
+    return nodes.extend({
+        base: metaNode(notify)
+    });
+}
+
+function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node {
+    return nodes.basic({
+        peekable: defs,
+        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+            let key = r.key;
+            let a:meta.Definition|undefined;
+            if (key != null) {
+                if (r.create && r.from != undefined) {
+                    let kase = r.from.node.choose(r.selection, r.meta.choice("body-stmt"));
+                    a = createDefinition(parent, kase.ident, key[0].val as string);                    
+                    defs.push(a);
+                } else {
+                    let ident = key[0].val as string;
+                    a = defs.find(d => d.ident == ident);    
+                }
+            } else if (r.row < defs.length) {
+                a = defs[r.row];
+                key = [val.str(a.ident)];
+            }
+            if (a != null) {
+                if (key == null) {
+                    throw new Error("illegal state");
+                }
+                return {n: dataDefNode(a), key: key}
+            }
+            return null;            
+        }
+    });
+}
+
+function createDefinition(parent: meta.Nodeable, metaType: string, ident: string): meta.Definition {
+    switch (metaType) {
+    case "container":
+            return new meta.Container(parent, ident);
+    case "leaf":
+        return new meta.Leaf(parent, ident);            
+    case "leaf-list":
+        return new meta.LeafList(parent, ident);            
+    case "list":
+        return new meta.List(parent, ident);            
+    case "choice":
+        return new meta.Choice(parent, ident);            
+    case "anyxml":
+        return new meta.Any(parent, ident);
+    }
+    throw new Error("unrecognized type " + metaType);
+}
+
+function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): node.Node {
+    let keys = nodes.index(actions);
+    return nodes.basic({
+        peekable: actions,
+        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+            let key = r.key;
+            let a:meta.Action|undefined;
+            if (key != null) {
+                let ident = key[0].val as string;
+                if (r.create) {
+                    a = new meta.Action(parent, ident);
+                    actions.set(ident, a);
+                } else {
+                    a = actions.get(ident);
+                }
+            } else if (r.row < actions.size) {
+                a = actions.get(keys[r.row]) as meta.Action;
+                key = [val.str(a.ident)];
+            }
+            if (a != null) {
+                if (key == null) {
+                    throw new Error("illegal state");
+                }
+                return {n: actionNode(a), key: key}
+            }
+            return null;
+        }
+    });
+}
+
+function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notification>): node.Node {
+    let keys = nodes.index(notifys);
+    return nodes.basic({
+        peekable: notifys,
+        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+            let key = r.key;
+            let x:meta.Notification|undefined;
+            if (key != null) {
+                let ident = key[0].val as string;
+                if (r.create) {
+                    x = new meta.Notification(parent, ident);
+                    notifys.set(ident, x);
+                } else {
+                    x = notifys.get(key[0].val as string);
+                }
+            } else if (r.row < notifys.size) {
+                x = notifys.get(keys[r.row]) as meta.Notification;
+                key = [val.str(x.ident)];
+            }
+            if (x != null) {
+                if (key == null) {
+                    throw new Error("illegal state");
+                }
+                return {n: notifyNode(x), key: key}
+            }
+            return null;
+        }
+    });
+}
+
+function moduleNode(m: meta.Module): node.Node {
+    return nodes.extend({
+        base: definitionNode(m),
+        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+            switch (r.meta.ident) {
+            case "revision":
+                if (r.create) {
+                    m.revision = {};
+                }
+                if (m.revision != null) {
+                    return nodes.reflect({obj:m.revision});
+                }
+                break;
+            default:
+                return p.child(r);
+            }
+            return null;
+        }
+    });
+}
+
+// rendition of what's in goconf/yang/yang.yang
+//
+
+export function yangModule(): meta.Module {
+    let m = new meta.Module('yang');
+    let c = new meta.Container(m, "module");
+    m.dataDef.push(c);
+    c.dataDef.push(...headerDefs(c));
+    let ns = new meta.Leaf(c, "namespace");
+    ns.type = ({format:val.Format.Str} as meta.Type);
+    c.dataDef.push(ns);
+    c.dataDef.push(...actionsAndNotifysDefs(c));
+    c.dataDef.push(dataDef(c));
+    return m;
+}
+
+function detailsDef(parent:meta.Meta) : meta.Definition[] {
+    let cfg = new meta.Leaf(parent, "config");
+    cfg.type = ({format:val.Format.Boolean} as meta.Type);
+    let mandatory = new meta.Leaf(parent, "mandatory");
+    mandatory.type = ({format:val.Format.Boolean} as meta.Type);
+    return [cfg, mandatory];
+}
+
+function typeDef(parent:meta.Meta) : meta.Definition {
+    let c = new meta.Container(parent, "type");    
+    c.dataDef.push(...typeDetailsDef(c));
+    return c;
+}
+
+const types = new val.EnumList([
+    {id: val.Format.Binary, label: "binary"},
+    {id: val.Format.Bits, label: "bits"},
+    {id: val.Format.Boolean, label: "boolean"},
+    {id: val.Format.Decimal64, label: "decimal64"},
+    {id: val.Format.Empty, label: "empty"},
+    {id: val.Format.Enum, label: "enum"},
+    {id: val.Format.IdentityRef, label: "identityRef"},
+    {id: val.Format.InstanceRef, label: "instanceRef"},
+    {id: val.Format.Int8, label: "int8"},
+    {id: val.Format.Int16, label: "int16"},
+    {id: val.Format.Int32, label: "int32"},
+    {id: val.Format.Int64, label: "int64"},
+    {id: val.Format.LeafRef, label: "leafRef"},
+    {id: val.Format.Str, label: "string"},
+    {id: val.Format.UInt8, label: "uint8"},
+    {id: val.Format.UInt16, label: "uint16"},
+    {id: val.Format.UInt32, label: "uint32"},
+    {id: val.Format.UInt64, label: "uint64"},
+    {id: val.Format.Union, label: "union"},
+    {id: val.Format.Any, label: "any"},
+    {id: val.Format.BinaryList, label: "binaryList"},
+    {id: val.Format.BitsList, label: "bitsList"},
+    {id: val.Format.BooleanList, label: "boolenaList"},
+    {id: val.Format.Decimal64List, label: "decimal64List"},
+    {id: val.Format.EmptyList, label: "emptyList"},
+    {id: val.Format.EnumList, label: "enumList"},
+    {id: val.Format.IdentityRefList, label: "identityRefList"},
+    {id: val.Format.InstanceRefList, label: "instanceRefList"},
+    {id: val.Format.Int8List, label: "int8List"},
+    {id: val.Format.Int16List, label: "int16List"},
+    {id: val.Format.Int32List, label: "int32List"},
+    {id: val.Format.Int64List, label: "int64List"},
+    {id: val.Format.LeafRefList, label: "leafRefList"},
+    {id: val.Format.StrList, label: "stringList"},
+    {id: val.Format.UInt8List, label: "uint8List"},
+    {id: val.Format.UInt16List, label: "uint16List"},
+    {id: val.Format.UInt32List, label: "uint32List"},
+    {id: val.Format.UInt64List, label: "uint64List"},
+    {id: val.Format.UnionList, label: "unionList"},
+    {id: val.Format.AnyList, label: "anyList"}
+]);
+
+function typeDetailsDef(c:meta.Container) : meta.Definition[] {
+    let dataDefs = headerDefs(c);
+    let t = new meta.Container(c, "type");
+    dataDefs.push(t);
+    let f = new meta.Leaf(t, "format");
+    dataDefs.push(f);
+    f.type = ({format:val.Format.Enum} as meta.Type);
+    f.type.enum = types;
+    // TODO: range, enumeration, path, base, union, length, 
+    // fractionDigits, pattern
+    return dataDefs;
+}
+
+function unitsDef(c:meta.Container) : meta.Definition {
+    let l = new meta.Leaf(c, "units");
+    l.type = ({format:val.Format.Str} as meta.Type);
+    return c;
+}
+
+function mustDef(c:meta.Container) : meta.Definition {
+    let l = new meta.Leaf(c, "must");
+    l.type = ({format:val.Format.Str} as meta.Type);
+    return c;
+}
+
+function listDetailsDefs(c:meta.Container) : meta.Definition[] {
+    let min = new meta.Leaf(c, "minElements");
+    min.type = ({format:val.Format.Int32} as meta.Type);
+    let max = new meta.Leaf(c, "maxElements");
+    max.type = ({format:val.Format.Int32} as meta.Type);
+    let ub = new meta.Leaf(c, "unbounded");
+    ub.type = ({format:val.Format.Boolean} as meta.Type);    
+    return [min, max, ub];
+}
+
+function dataDef(parent:meta.Meta) : meta.List {
+    let ddef = new meta.List(parent, "dataDef");
+    ddef.key = ["ident"];
+    ddef.dataDef.push(...headerDefs(ddef));
+    ddef.dataDef.push(whenDef(ddef));
+    let bodyStmt = new meta.Choice(ddef, "body-stmt");
+    ddef.dataDef.push(bodyStmt);
+
+    for (let ident of ["container", "list", "leaf", "anyxml", "leaf-list", "choice"]) {
+        let kase = new meta.ChoiceCase(bodyStmt, ident);
+        bodyStmt.cases.set(kase.ident, kase);
+        let d = new meta.Container(kase, kase.ident);
+        kase.dataDef.push(d);
+
+        switch (ident) {
+        case "container":
+            d.dataDef.push(ddef); // recursive definition
+            d.dataDef.push(...detailsDef(d));
+            d.dataDef.push(...actionsAndNotifysDefs(d));
+            break;
+
+        case "list":            
+            d.dataDef.push(ddef); // recursive definition
+            d.dataDef.push(...detailsDef(d));
+            d.dataDef.push(...listDetailsDefs(d));
+            d.dataDef.push(...actionsAndNotifysDefs(d));
+            break;
+
+        case "anyxml":
+            d.dataDef.push(...detailsDef(d));
+            d.dataDef.push(typeDef(d));
+            break;
+
+        case "leaf":
+            d.dataDef.push(...detailsDef(d));
+            d.dataDef.push(typeDef(d));
+            d.dataDef.push(unitsDef(d));
+            d.dataDef.push(mustDef(d));
+            break;
+
+        case "leaf-list":
+            d.dataDef.push(...detailsDef(d));
+            d.dataDef.push(typeDef(d));
+            d.dataDef.push(...listDetailsDefs(d));
+            d.dataDef.push(unitsDef(d));
+            d.dataDef.push(mustDef(d));
+            break;
+
+        case "choice":
+            let cases = new meta.List(d, "cases");
+            cases.key = ["ident"];
+            d.dataDef.push(cases);
+            cases.dataDef.push(...headerDefs(cases));
+            cases.dataDef.push(ddef); // recursive definition
+            cases.dataDef.push(...actionsAndNotifysDefs(cases));
+            break;
+        }
+    }
+    return ddef;
+}
+
+function whenDef(parent:meta.Meta) : meta.Leaf {
+    let l = new meta.Leaf(parent, "when");
+    l.type = ({format: val.Format.Str} as meta.Type);
+    return l;
+}
+
+function actionsAndNotifysDefs(parent:meta.Meta) : meta.Definition[] {
+    let action = new meta.List(parent, "action");
+    action.key = ["ident"];
+    action.dataDef.push(...headerDefs(action));
+    let input = new meta.Container(action, "input");
+    action.dataDef.push(input);
+    let output = new meta.Container(action, "output");
+    action.dataDef.push(output);
+
+    let notify = new meta.List(parent, "notify");
+    notify.key = ["ident"];
+    notify.dataDef.push(...headerDefs(action));
+    return [action, notify];
+}
+
+function headerDefs(parent:meta.Meta) : meta.Definition[] {
+    let ident = new meta.Leaf(parent, "ident");
+    ident.type = ({format:val.Format.Str} as meta.Type);
+    return [ ident ];
+}

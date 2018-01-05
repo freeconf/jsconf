@@ -1,0 +1,47 @@
+{
+  "name": "freeconf",
+  "version": "0.0.1",
+  "description": "FreeCONF RESTCONF driver",
+  "license": "MIT",
+  "repository": "FreeCONF/fcjs",
+  "main": "freeconf.js",
+  "module": "freeconf.js",
+  "directories": {
+    "test": "test"
+  },
+  "files": [
+    "/freeconf.js",
+    "/freeconf.js.map",
+    "/freeconf.d.ts",
+    "/lib/",
+    "/src/",
+    "!/src/test/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "gen-docs": "typedoc --readme none --mode modules --excludeNotExported --excludePrivate --exclude **/*_test.ts --out ./docs/api .",
+    "test": "npm run build && wct --npm && npm run lint",
+    "quicktest": "wct -l chrome -p --npm",
+    "checksize": "uglifyjs freeconf.js -mc --toplevel | gzip -9 | wc -c",
+    "format": "find src test | grep '\\.js$\\|\\.ts$' | xargs clang-format --style=file -i",
+    "lint": "tslint --project ./",
+    "prepare": "npm run build"
+  },
+  "author": "Douglas Hubler",
+  "devDependencies": {
+    "@types/chai": "^4.0.1",
+    "@types/mocha": "^2.2.41",
+    "@webcomponents/template": "^1.1.0",
+    "babel-polyfill": "^6.26.0",
+    "chai": "^4.0.2",
+    "mocha": "^3.4.2",
+    "tslint": "^5.7.0",
+    "typedoc": "^0.8.0",
+    "typescript": "^2.4.1",
+    "uglify-es": "^3.0.27",
+    "wct-browser-legacy": "^0.0.1-pre.10",
+    "web-component-tester": "^6.3.0"
+  },
+  "typings": "freeconf.d.ts",
+  "dependencies": {}
+}

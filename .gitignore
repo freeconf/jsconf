@@ -1,0 +1,29 @@
+/node_modules/
+/lib/
+
+# Compiler output
+/freeconf.d.ts
+/freeconf.js
+/freeconf.js.map
+/test/**/*.d.ts
+/test/**/*.js
+/test/**/*.js.map
+
+yarn.lock
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
