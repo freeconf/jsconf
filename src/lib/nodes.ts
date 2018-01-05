@@ -348,11 +348,11 @@ function reflectChildObject(self: Reflect): node.Node {
             let prop = Object.getOwnPropertyDescriptor(self.obj, r.meta.ident); 
             if (r.write) {
                 if (prop == undefined) {
-                    self.obj[r.meta.ident] = hnd.val;
+                    self.obj[r.meta.ident] = hnd.val.val;
                 } else {
                     // TODO: handle enums, test if destination is string or 
                     // number or enum (if this is even possible in TS)
-                    prop.value = hnd.val;   
+                    prop.value = hnd.val.val;   
                 }
             } else {
                 if (prop != undefined) {
