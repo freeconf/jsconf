@@ -1,0 +1,15 @@
+language: node_js
+sudo: false
+dist: trusty
+node_js: stable
+addons:
+  firefox: latest
+  chrome: stable
+cache:
+  directories:
+  - node_modules
+before_script:
+- npm run build
+script:
+- xvfb-run wct --npm
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then wct -s 'windows 10/microsoftedge@15' -s 'macos 10.12/safari@10' --npm; fi

@@ -3,7 +3,7 @@ import * as val from './val.js';
 import {Editor, strategy}  from './edit.js';
 import { Definition, Nodeable } from './meta.js';
 
-console.log("node.ts");
+console.log('node.ts');
 
 export class FieldRequest {
     readonly path: Path;
@@ -19,7 +19,7 @@ export class FieldRequest {
         return {
             selection: s,
             meta: meta,
-            target:target,
+            target: target,
             path : new Path(meta, s.path),
         } as FieldRequest;
     }
@@ -71,32 +71,32 @@ export class ListRequest {
     constructor(
         readonly selection: Selection,
         readonly meta: meta.List,
-        readonly path:Path,
+        readonly path: Path,
         readonly from?: Selection,
         readonly base?: Path,
         readonly key?: val.Value[],
         readonly startRow: number = 0,
-        
+
         readonly create: boolean = false,
         readonly del: boolean = false,
         readonly target?: Path,
         readonly row: number = 0,
         readonly first: boolean = true,
-    ) { 
+    ) {
     }
 
     static writer(s: Selection, meta: meta.List, from: Selection, base: Path, key?: val.Value[]): ListRequest {
         return new ListRequest(
             s,
             meta,
-            new Path(meta, s.path),            
+            new Path(meta, s.path),
             from,
             base,
             key,
-            0, 
+            0,
             true
         );
-    }    
+    }
 
     static readerByRow(s: Selection, meta: meta.List, row: number): ListRequest {
         return new ListRequest(
@@ -125,11 +125,11 @@ export class ListRequest {
         return new ListRequest(
             this.selection,
             this.meta,
-            this.path,            
+            this.path,
             this.from,
             this.base,
             this.key,
-            this.startRow, 
+            this.startRow,
             false,
             false,
             this.target,
@@ -143,7 +143,7 @@ export class NodeRequest {
     readonly selection: Selection;
     readonly create: boolean;
     readonly source: Selection;
-    readonly editRoot:boolean = false;
+    readonly editRoot: boolean = false;
 }
 
 export class  ActionRequest {
@@ -152,7 +152,7 @@ export class  ActionRequest {
     readonly input?: Selection;
 
     static create(parent: Selection, meta: meta.Action, input?: Node): ActionRequest {
-        if (input != undefined) {
+        if (input !== undefined) {
             return {
                 selection: parent,
                 meta: meta,
@@ -173,7 +173,7 @@ export class  ActionRequest {
 }
 
 export interface NotifyStream {
-    (msg:Selection): void;
+    (msg: Selection): void;
 }
 
 export class NotifyRequest {
@@ -187,15 +187,15 @@ export interface NotifyCloser {
 }
 
 export class ValueHandle {
-    val: val.Value
+    val: val.Value;
 }
 
 class PathSlice {
-    head: Path
-    tail: Path
+    head: Path;
+    tail: Path;
 
     static parse(s: string, mod: meta.Module): PathSlice {
-        let segs = s.split("/");
+        const segs = s.split('/');
         let def: Definition = mod;
         let p = new Path(def);
         const slice = {
@@ -204,16 +204,16 @@ class PathSlice {
         } as PathSlice;
         for (let i = 0; i < segs.length; i++) {
             // a/b/c same as a/b/c/
-            if (segs[i] == "") {
+            if (segs[i] === '') {
                 break;
             }
 
-            let eq = segs[i].indexOf('=');
+            const eq = segs[i].indexOf('=');
             let ident: string;
             let keys: (val.Value[]|undefined);
             if (eq >= 0) {
                 ident = segs[i].substr(0, eq);
-                let keyStrs = segs[i].substr(eq+1).split(',');
+                const keyStrs = segs[i].substr(eq + 1).split(',');
                 keys = values((def as meta.List).keyMeta, ...keyStrs);
             } else {
                 ident = segs[i];
@@ -228,36 +228,36 @@ class PathSlice {
 
 export class Path {
     constructor(meta: meta.Definition);
-    constructor(meta: meta.Definition, parent:Path);
-    constructor(meta: meta.Definition, parent:Path, key: val.Value[]);
+    constructor(meta: meta.Definition, parent: Path);
+    constructor(meta: meta.Definition, parent: Path, key: val.Value[]);
     constructor(
-        public readonly meta: meta.Definition, 
-        public readonly parent?:Path, 
+        public readonly meta: meta.Definition,
+        public readonly parent?: Path,
         public readonly key?: val.Value[]) {
     }
 
     toString(): string {
-        let s = this.meta.ident; 
-        if (this.key != undefined) {
+        let s = this.meta.ident;
+        if (this.key !== undefined) {
             s += '=';
             for (let i = 0; i < this.key.length; i++) {
-                if (i != 0) {
+                if (i !== 0) {
                     s += ',';
                 }
                 s += this.key[i].toString();
-            }            
+            }
         }
 
-        if (this.parent == undefined) {
+        if (this.parent === undefined) {
             return s;
         }
-        return this.parent.toString() + "/" + s;
+        return this.parent.toString() + '/' + s;
     }
 }
 
 export class Browser {
 
-    constructor(readonly meta: meta.Module, readonly node: Node){
+    constructor(readonly meta: meta.Module, readonly node: Node) {
     }
 
     Root(): Selection {
@@ -265,7 +265,7 @@ export class Browser {
             this,
             this.node,
             new Path(this.meta),
-            new Map<string,any>()
+            new Map<string, any>()
         );
     }
 }
@@ -285,14 +285,14 @@ export function value(m: meta.Leafable, x: any): val.Value {
     case val.Format.EnumList:
         return val.enums(toEnumList(m.type.enum, x));
     case val.Format.Union:
-        throw new Error("TODO");
+        throw new Error('TODO');
     }
     return val.conv(m.type.format, x);
 }
 
 function toEnumList(l: val.EnumList, x: any): val.Enum[] {
     if (x instanceof Array) {
-        let vals = new Array<val.Enum>(x.length);
+        const vals = new Array<val.Enum>(x.length);
         for (let i = 0; i < x.length; i++) {
             vals[i] = toEnum(l, x[i]);
         }
@@ -303,10 +303,10 @@ function toEnumList(l: val.EnumList, x: any): val.Enum[] {
 
 function toEnum(l: val.EnumList, x: any): val.Enum {
     try {
-        let v = val.conv(val.Format.Int32, x);
+        const v = val.conv(val.Format.Int32, x);
         return l.byId(v.val as number);
     } catch (nan) {
-        let v = val.conv(val.Format.Str, x);        
+        const v = val.conv(val.Format.Str, x);
         return l.byLabel(v.val as string);
     }
 }
@@ -314,19 +314,19 @@ function toEnum(l: val.EnumList, x: any): val.Enum {
 export class Selection {
 
     constructor(
-        readonly browser:Browser,
-        readonly node:Node,
-        readonly path:Path,
-        readonly context:Map<string,any>,
-        readonly parent?:Selection,
+        readonly browser: Browser,
+        readonly node: Node,
+        readonly path: Path,
+        readonly context: Map<string, any>,
+        readonly parent?: Selection,
         readonly insideList = false
         ) {
     }
 
-    value(ident:string): val.Value {
+    value(ident: string): val.Value {
         // TODO: not sure why i have to cast to any, then leafable
-        let d:any = (this.meta as meta.Nodeable).definition(ident);
-        let r = FieldRequest.reader(this, (d as meta.Leafable));
+        const d: any = (this.meta as meta.Nodeable).definition(ident);
+        const r = FieldRequest.reader(this, (d as meta.Leafable));
         return this.valueHnd(r).val;
     }
 
@@ -336,7 +336,7 @@ export class Selection {
 
     valueHnd(r: FieldRequest, useDefault: boolean = true): ValueHandle {
         // TODO: Check pre/post constraints
-        let hnd = new ValueHandle();
+        const hnd = new ValueHandle();
         this.node.field(r, hnd);
         if (hnd.val == null && useDefault && r.meta.hasDefault) {
             hnd.val = value(r.meta, r.meta.default);
@@ -349,9 +349,9 @@ export class Selection {
         this.node.field(r, hnd);
     }
 
-    select(r: ChildRequest): (Selection|null) {
+    select(r: ChildRequest): (Selection | null) {
         // TODO: Check pre/post constraints
-        let child = this.node.child(r);
+        const child = this.node.child(r);
         if (child != null) {
             return new Selection(
                 this.browser,
@@ -361,18 +361,18 @@ export class Selection {
                 this,
             );
             // call/set node.context
-        }        
+        }
 
         return null;
     }
 
-    selectListItem(r: ListRequest): ({sel: Selection, key: val.Value[]}|null) {
+    selectListItem(r: ListRequest): ({sel: Selection, key: val.Value[]} | null) {
         // TODO: Check pre/post constraints
-        let child = this.node.next(r)
+        const child = this.node.next(r);
         if (child == null) {
             return null;
         }
-        let sel = new Selection(
+        const sel = new Selection(
             this.browser,
             child.n,
             // NOTE: use this.path.parent not, this.path so list is not in twice
@@ -382,36 +382,36 @@ export class Selection {
             true,
         );
 
-        return {sel:sel, key:child.key};
+        return {sel: sel, key: child.key};
     }
 
     insertInto(to: Node): void {
-        let e = new Editor(this.path);
+        const e = new Editor(this.path);
         e.edit(this, this.split(to), strategy.insert);
     }
 
     insertFrom(from: Node): void {
-        let e = new Editor(this.path);
+        const e = new Editor(this.path);
         e.edit(this.split(from), this, strategy.insert);
     }
 
     upsertInto(to: Node): void {
-        let e = new Editor(this.path);
+        const e = new Editor(this.path);
         e.edit(this, this.split(to), strategy.upsert);
     }
 
     upsertFrom(from: Node): void {
-        let e = new Editor(this.path);
+        const e = new Editor(this.path);
         e.edit(this.split(from), this, strategy.upsert);
     }
 
     updateInto(to: Node): void {
-        let e = new Editor(this.path);
+        const e = new Editor(this.path);
         e.edit(this, this.split(to), strategy.update);
     }
 
     updateFrom(from: Node): void {
-        let e = new Editor(this.path);
+        const e = new Editor(this.path);
         e.edit(this.split(from), this, strategy.update);
     }
 
@@ -426,13 +426,13 @@ export class Selection {
         );
     }
 
-    beginEdit(nr: NodeRequest, bubble: boolean): void {
-        let r = {
+    beginEdit(nr: NodeRequest, bubble: boolean) {
+        const r = {
             selection: this as Selection, // not sure why cast is nec.
             create: nr.create,
             source: nr.source,
             editRoot: true
-        }
+        };
         while (true) {
             r.selection.node.beginEdit(r as NodeRequest);
 
@@ -445,13 +445,13 @@ export class Selection {
         }
     }
 
-    endEdit(nr: NodeRequest, bubble: boolean):void {
-        let r = {
+    endEdit(nr: NodeRequest, bubble: boolean) {
+        const r = {
             selection: this as Selection,
             create: nr.create,
             source: nr.source,
             editRoot: true
-        }
+        };
         while (true) {
             this.node.endEdit(r as NodeRequest);
 
@@ -464,7 +464,7 @@ export class Selection {
         }
     }
 
-    find(_: string): (Selection|null) {
+    find(_: string): (Selection | null) {
 
         // TODO
         //   parse url w/params
@@ -472,10 +472,10 @@ export class Selection {
         return null;
     }
 
-    action(input?: Node): (Selection|null) {
+    action(input?: Node): (Selection | null) {
         // TODO: check constraints
-        let r = ActionRequest.create(this, this.meta as meta.Action, input);
-        let output = this.node.action(r);
+        const r = ActionRequest.create(this, this.meta as meta.Action, input);
+        const output = this.node.action(r);
         if (output != null) {
             return new Selection(
                 this.browser,
@@ -490,16 +490,16 @@ export class Selection {
 }
 
 export interface Node {
-    child(r: ChildRequest): (Node|null);
+    child(r: ChildRequest): (Node | null);
     field(r: FieldRequest, hnd: ValueHandle): void;
-    next(r: ListRequest): ({n: Node; key: val.Value[]}|null);
+    next(r: ListRequest): ({n: Node; key: val.Value[]} | null);
     choose(sel: Selection, choice: meta.Choice): meta.ChoiceCase;
     remove(r: NodeRequest): void;
     beginEdit(r: NodeRequest): void;
     endEdit(r: NodeRequest): void;
     action(r: ActionRequest): (Node|null);
-    notify(r: NotifyRequest): (NotifyCloser|null);
-    peek(s: Selection,consumer:any): (any|null);
-    context(s: Selection, ctx: Map<string, any>): Map<string, any>
+    notify(r: NotifyRequest): (NotifyCloser | null);
+    peek(s: Selection, consumer: any): (any | null);
+    context(s: Selection, ctx: Map<string, any>): Map<string, any>;
 }
 

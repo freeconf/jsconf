@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "FreeCONF RESTCONF driver",
   "license": "MIT",
-  "repository": "FreeCONF/fcjs",
+  "repository": "freeconf/jsconf",
   "main": "freeconf.js",
   "module": "freeconf.js",
   "directories": {

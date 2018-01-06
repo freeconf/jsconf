@@ -8,7 +8,7 @@ export enum strategy {
     update,
 }
 
-console.log("edit.ts");
+console.log('edit.ts');
 
 class DefIterator {
     private dataDef: meta.Definition[];
@@ -16,7 +16,7 @@ class DefIterator {
     private nextDef: (meta.Definition|null);
     private choiceIterator: (DefIterator|null);
 
-    constructor(public sel: node.Selection, nested?: meta.ChoiceCase){
+    constructor(public sel: node.Selection, nested?: meta.ChoiceCase) {
         if (nested == null) {
             this.dataDef = (sel.meta as meta.Nodeable).dataDef;
         } else {
@@ -33,11 +33,11 @@ class DefIterator {
         if (this.nextDef == null) {
             throw new Error('end of iterator');
         }
-        let n = this.nextDef;
+        const n = this.nextDef;
         this.lookAhead();
         return n;
     }
-    
+
     lookAhead(): void {
         this.nextDef = null;
         while (true) {
@@ -46,12 +46,12 @@ class DefIterator {
                     this.nextDef = this.choiceIterator.next();
                     return;
                 }
-                this.choiceIterator = null
+                this.choiceIterator = null;
             }
             if (this.pos < this.dataDef.length) {
-                let n = this.dataDef[this.pos++];
+                const n = this.dataDef[this.pos++];
                 if (n instanceof meta.Choice) {
-                    let chosen = this.sel.node.choose(this.sel, n);
+                    const chosen = this.sel.node.choose(this.sel, n);
                     this.choiceIterator = new DefIterator(this.sel, chosen);
                     continue;
                 }
@@ -81,9 +81,9 @@ export class Editor {
         if ((from.meta instanceof meta.List) && !from.insideList) {
             this.list(from, to, from.meta as meta.List, create, strategy);
         } else {
-            let i = new DefIterator(from);
+            const i = new DefIterator(from);
             while (i.hasNext()) {
-                let d = i.next();
+                const d = i.next();
                 if (meta.isLeaf(d)) {
                     this.leaf(from, to, d as meta.Leafable, create, strategy);
                 } else {
@@ -103,27 +103,27 @@ export class Editor {
         let fromChild = from.selectListItem(rFrom);
         while (fromChild != null) {
             let newChild = false;
-            let toChild:{sel:node.Selection, key:val.Value[]}|null;
+            let toChild: {sel: node.Selection, key: val.Value[]} | null;
             if (fromChild.key != null) {
-                let rTo = node.ListRequest.readerByKey(to, meta, fromChild.key);
+                const rTo = node.ListRequest.readerByKey(to, meta, fromChild.key);
                 toChild = to.selectListItem(rTo);
             } else {
                 toChild = null;
             }
 
-            let wTo = node.ListRequest.writer(to, meta, fromChild.sel, this.basePath, fromChild.key);
+            const wTo = node.ListRequest.writer(to, meta, fromChild.sel, this.basePath, fromChild.key);
             switch (s) {
             case strategy.insert:
                 if (toChild != null) {
-                    throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`)
+                    throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`);
                 }
                 toChild = to.selectListItem(wTo);
-                newChild = true; 
+                newChild = true;
                 break;
             case strategy.upsert:
                 if (toChild == null) {
                     toChild = to.selectListItem(wTo);
-                    newChild = true; 
+                    newChild = true;
                 }
                 break;
             case strategy.update:
@@ -137,34 +137,34 @@ export class Editor {
                 throw new Error(`'${wTo.path}' could not create '${meta.ident}' container node.`);
             }
             this.enter(fromChild.sel, toChild.sel, newChild, s, false, false);
-    
+
             rFrom = rFrom.next();
             fromChild = from.selectListItem(rFrom);
         }
     }
 
     node(from: node.Selection, to: node.Selection, meta: meta.Nodeable, _: boolean, s: strategy) {
-        let rFrom = node.ChildRequest.reader(from, meta);
-        let fromChild = from.select(rFrom);
+        const rFrom = node.ChildRequest.reader(from, meta);
+        const fromChild = from.select(rFrom);
         if (fromChild == null) {
             return;
         }
-        let rTo = node.ChildRequest.reader(to, meta);
+        const rTo = node.ChildRequest.reader(to, meta);
         let toChild = to.select(rTo);
         let newChild = false;
 
-        let wTo = node.ChildRequest.writer(to, meta, fromChild, this.basePath);
+        const wTo = node.ChildRequest.writer(to, meta, fromChild, this.basePath);
         switch (s) {
         case strategy.insert:
             if (toChild != null) {
-                throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`)
+                throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`);
             }
             toChild = to.select(wTo);
             newChild = true;
             break;
         case strategy.upsert:
             if (toChild == null) {
-                toChild = to.select(wTo);                
+                toChild = to.select(wTo);
                 newChild = true;
             }
             break;
@@ -178,15 +178,15 @@ export class Editor {
         if (toChild == null) {
             throw new Error(`'${wTo.path}' could not create '${meta.ident}' container node`);
         }
-        this.enter(fromChild, toChild, newChild, s, false, false)
+        this.enter(fromChild, toChild, newChild, s, false, false);
     }
 
     leaf(from: node.Selection, to: node.Selection, meta: meta.Leafable, create: boolean, s: strategy) {
-        let rFrom = node.FieldRequest.reader(from, meta);
-        let useDefault = (s != strategy.update && create) || this.useDefault;
-        let hnd = from.valueHnd(rFrom, useDefault);
+        const rFrom = node.FieldRequest.reader(from, meta);
+        const useDefault = (s !== strategy.update && create) || this.useDefault;
+        const hnd = from.valueHnd(rFrom, useDefault);
         if (hnd.val != null) {
-            let rTo = node.FieldRequest.writer(to, meta, from, this.basePath);
+            const rTo = node.FieldRequest.writer(to, meta, from, this.basePath);
             to.setValueHnd(rTo, hnd);
         }
     }

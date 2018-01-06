@@ -1,7 +1,7 @@
 
 import * as val from './val.js';
 
-console.log("meta.ts");
+console.log('meta.ts');
 
 export interface Meta {
     parent: Meta;
@@ -21,11 +21,11 @@ export interface Nodeable extends Definition {
 
 export interface Leafable extends Definition {
     type: Type;
-    hasDefault: boolean
-    default: string
+    hasDefault: boolean;
+    default: string;
 }
 
-export function isLeaf(d:Definition): boolean {
+export function isLeaf(d: Definition): boolean {
     return (d instanceof Leaf || d instanceof LeafList);
 }
 
@@ -55,13 +55,13 @@ export class Module implements Definition, Nodeable, HasActions, HasNotification
         this.defs = new Defs(this.dataDef, this.actions, this.notifys);
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
     choice(ident: string): Choice {
         return this.defs.choice(ident);
-    }    
+    }
 }
 
 export class Leaf implements Leafable {
@@ -84,10 +84,10 @@ export class Any implements Leafable {
     reference: string;
 
     constructor(public parent: Meta, public ident: string) {
-    }    
+    }
 
     get default(): any {
-        throw new Error("any cannot have default value");
+        throw new Error('any cannot have default value');
     }
 
     get hasDefault(): boolean {
@@ -131,13 +131,13 @@ export class Container implements Definition, Nodeable, HasActions, HasNotificat
         this.defs = new Defs(this.dataDef, this.actions, this.notifys);
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
     choice(ident: string): Choice {
         return this.defs.choice(ident);
-    }    
+    }
 }
 
 export class List implements Definition, Nodeable, HasActions, HasNotifications {
@@ -159,13 +159,13 @@ export class List implements Definition, Nodeable, HasActions, HasNotifications 
         this.defs = new Defs(this.dataDef, this.actions, this.notifys);
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
     choice(ident: string): Choice {
         return this.defs.choice(ident);
-    }    
+    }
 
     get keyMeta(): Leafable[] {
         if (this._keyMeta == null) {
@@ -207,13 +207,13 @@ export class RpcInput implements Nodeable {
         return this.rpc;
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
     choice(ident: string): Choice {
         return this.defs.choice(ident);
-    }    
+    }
 }
 
 export class RpcOutput implements Meta {
@@ -235,13 +235,13 @@ export class RpcOutput implements Meta {
         return this.rpc;
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
     choice(ident: string): Choice {
         return this.defs.choice(ident);
-    }    
+    }
 }
 
 export class Notification implements Definition {
@@ -255,13 +255,13 @@ export class Notification implements Definition {
         this.defs = new Defs(this.dataDef);
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
     choice(ident: string): Choice {
         return this.defs.choice(ident);
-    }    
+    }
 }
 
 export class Choice implements Definition {
@@ -289,7 +289,7 @@ export class ChoiceCase implements Nodeable, HasNotifications, HasActions {
         this.defs = new Defs(this.dataDef, this.actions, this.notifys);
     }
 
-    definition(ident: string) : Definition {
+    definition(ident: string): Definition {
         return this.defs.definition(ident);
     }
 
@@ -318,9 +318,9 @@ class Defs {
     }
 
     choice(ident: string): Choice {
-        let candidate = this.dataDef.find((d) => d.ident == ident);
+        const candidate = this.dataDef.find((d) => d.ident === ident);
         if (candidate == null) {
-            throw new Error(ident + " choice not found");
+            throw new Error(ident + ' choice not found');
         }
         return candidate as Choice;
     }
@@ -330,15 +330,15 @@ class Defs {
             const a = this.actions.get(ident);
             if (a != null) {
                 return a;
-            }    
+            }
         }
         if (this.notifys != null) {
             const n = this.notifys.get(ident);
             if (n != null) {
                 return n;
-            }    
+            }
         }
-        if (this.index == undefined) {
+        if (this.index === undefined) {
             this.index = new Map<string, Definition>();
             for (const d of this.dataDef) {
                 this.addIndex(d);
@@ -353,8 +353,8 @@ class Defs {
 
     private addIndex(d: Definition): void {
         if (d instanceof Choice) {
-            let ch = d as Choice;
-            for (let [_, kase] of ch.cases) {
+            const ch = d as Choice;
+            for (const [_, kase] of ch.cases) {
                 for (const def of kase.dataDef) {
                     this.addIndex(def);
                 }

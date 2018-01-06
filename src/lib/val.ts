@@ -1,8 +1,8 @@
 
-console.log("val.ts");
+console.log('val.ts');
 
 export class Value {
-    constructor(public readonly val:any, public readonly format:Format) {}
+    constructor(public readonly val: any, public readonly format: Format) {}
 
     toString(): string {
         return this.val.toString();
@@ -109,8 +109,8 @@ export class EnumList {
     constructor(public enums: Enum[]) {}
 
     byId(id: number): Enum {
-        for (let x of this.enums) {
-            if (x.id == id) {
+        for (const x of this.enums) {
+            if (x.id === id) {
                 return x;
             }
         }
@@ -118,8 +118,8 @@ export class EnumList {
     }
 
     byLabel(label: string): Enum {
-        for (let x of this.enums) {
-            if (x.label == label) {
+        for (const x of this.enums) {
+            if (x.label === label) {
                 return x;
             }
         }
