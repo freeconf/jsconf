@@ -334,6 +334,10 @@ export class Selection {
         return this.path.meta as meta.Definition;
     }
 
+    get key(): (val.Value[] | undefined) {
+        return this.path.key;
+    }
+
     valueHnd(r: FieldRequest, useDefault: boolean = true): ValueHandle {
         // TODO: Check pre/post constraints
         const hnd = new ValueHandle();
@@ -366,23 +370,30 @@ export class Selection {
         return null;
     }
 
-    selectListItem(r: ListRequest): ({sel: Selection, key: val.Value[]} | null) {
+    selectListItem(r: ListRequest): (Selection | null) {
         // TODO: Check pre/post constraints
         const child = this.node.next(r);
-        if (child == null) {
+        if (child === null) {
             return null;
         }
-        const sel = new Selection(
-            this.browser,
-            child.n,
+        let path: Path; 
+        if (r.meta.keyMeta.length > 0) {
+            if (child.key === undefined) {
+                throw new Error('no key returned for ' + r.path.toString());
+            }    
             // NOTE: use this.path.parent not, this.path so list is not in twice
-            new Path(r.meta, this.path.parent as Path, child.key),
+            path = new Path(r.meta, this.path.parent as Path, child.key);
+        } else {
+            path = new Path(r.meta, this.path.parent as Path);            
+        }
+        return new Selection(
+            this.browser,
+            child.node,
+            path,
             this.context,
             this,
             true,
         );
-
-        return {sel: sel, key: child.key};
     }
 
     insertInto(to: Node): void {
@@ -489,10 +500,15 @@ export class Selection {
     }
 }
 
+export interface ListResponse {
+    node: Node
+    key?: val.Value[]
+}
+
 export interface Node {
     child(r: ChildRequest): (Node | null);
     field(r: FieldRequest, hnd: ValueHandle): void;
-    next(r: ListRequest): ({n: Node; key: val.Value[]} | null);
+    next(r: ListRequest): (ListResponse | null);
     choose(sel: Selection, choice: meta.Choice): meta.ChoiceCase;
     remove(r: NodeRequest): void;
     beginEdit(r: NodeRequest): void;

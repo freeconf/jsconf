@@ -1,5 +1,4 @@
 import * as meta from './meta.js';
-import * as val from './val.js';
 import * as node from './node.js';
 
 export enum strategy {
@@ -103,7 +102,7 @@ export class Editor {
         let fromChild = from.selectListItem(rFrom);
         while (fromChild != null) {
             let newChild = false;
-            let toChild: {sel: node.Selection, key: val.Value[]} | null;
+            let toChild: (node.Selection | null);
             if (fromChild.key != null) {
                 const rTo = node.ListRequest.readerByKey(to, meta, fromChild.key);
                 toChild = to.selectListItem(rTo);
@@ -111,7 +110,7 @@ export class Editor {
                 toChild = null;
             }
 
-            const wTo = node.ListRequest.writer(to, meta, fromChild.sel, this.basePath, fromChild.key);
+            const wTo = node.ListRequest.writer(to, meta, fromChild, this.basePath, fromChild.key);
             switch (s) {
             case strategy.insert:
                 if (toChild != null) {
@@ -136,7 +135,7 @@ export class Editor {
             if (toChild == null) {
                 throw new Error(`'${wTo.path}' could not create '${meta.ident}' container node.`);
             }
-            this.enter(fromChild.sel, toChild.sel, newChild, s, false, false);
+            this.enter(fromChild, toChild, newChild, s, false, false);
 
             rFrom = rFrom.next();
             fromChild = from.selectListItem(rFrom);

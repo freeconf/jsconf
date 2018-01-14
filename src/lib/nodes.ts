@@ -1,6 +1,5 @@
 import * as meta from './meta.js';
 import * as node from './node.js';
-import * as val from './val.js';
 
 console.log('nodes.ts');
 
@@ -13,7 +12,7 @@ export interface OnField {
 }
 
 export interface OnNext {
-    (r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null);
+    (r: node.ListRequest): (node.ListResponse | null);
 }
 
 export interface OnChoose {
@@ -79,7 +78,7 @@ export function basic(self: Basic): node.Node {
             return self.onField(r, hnd);
         },
 
-        next(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+        next(r: node.ListRequest): (node.ListResponse | null) {
             if (self.onNext == null) {
                 throw new Error('Next not implemented on node ' + r.selection.path);
             }
@@ -177,7 +176,7 @@ export function extend(self: Extend): node.Node {
             }
         },
 
-        next(r: node.ListRequest): ({n: node.Node; key: val.Value[]}|null) {
+        next(r: node.ListRequest): (node.ListResponse | null) {
             if (self.onNext == null) {
                 return self.base.next(r);
             }
@@ -254,7 +253,7 @@ export interface OnExtendField {
 }
 
 export interface OnExtendNext {
-    (parent: node.Node, r: node.ListRequest): ({n: node.Node; key: val.Value[]}|null);
+    (parent: node.Node, r: node.ListRequest): (node.ListResponse | null);
 }
 
 export interface OnExtendChoose {
@@ -382,7 +381,7 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
     const i = index(x);
     return basic({
         peekable: x,
-        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
             let item: any;
             let key = r.key;
             if (r.create) {
@@ -400,12 +399,12 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
                     key = node.values(r.meta.keyMeta, keyVal);
                 }
             }
-            if (item != null) {
+            if (item != undefined) {
                 const n = reflect({obj: item, onCreate: self.onCreate});
                 if (n === undefined || key === undefined) {
                     throw new Error('illegal state');
                 }
-                return {n: n, key: key};
+                return {node: n, key: key};
             }
             return null;
         }
@@ -415,7 +414,7 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
 function reflectListArray(self: Reflect, x: any[]): node.Node {
     return basic({
         peekable: x,
-        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]}|null) {
+        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
             let item: any;
             let key = r.key;
             if (r.create) {
@@ -432,12 +431,12 @@ function reflectListArray(self: Reflect, x: any[]): node.Node {
                 const keyVal = reflectProp(item, r.meta.key[0]);
                 key = node.values(r.meta.keyMeta, keyVal);
             }
-            if (item !== null) {
+            if (item !== undefined) {
                 const n = reflect({obj: item, onCreate: self.onCreate});
-                if (n === undefined || key === undefined) {
+                if (n === undefined) {
                     throw new Error('illegal state');
                 }
-                return {n: n, key: key};
+                return {node: n, key: key};
             }
             return null;
         }

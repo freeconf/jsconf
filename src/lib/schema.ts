@@ -181,10 +181,10 @@ function notifyNode(notify: meta.Notification): node.Node {
 function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node {
     return nodes.basic({
         peekable: defs,
-        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
             let key = r.key;
-            let a: meta.Definition|undefined;
-            if (key != null) {
+            let a: meta.Definition | undefined;
+            if (key !== undefined) {
                 if (r.create && r.from !== undefined) {
                     const kase = r.from.node.choose(r.selection, r.meta.choice('body-stmt'));
                     a = createDefinition(parent, kase.ident, key[0].val as string);
@@ -197,11 +197,8 @@ function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node
                 a = defs[r.row];
                 key = [val.str(a.ident)];
             }
-            if (a != null) {
-                if (key == null) {
-                    throw new Error('illegal state');
-                }
-                return {n: dataDefNode(a), key: key};
+            if (a !== undefined) {
+                return {node: dataDefNode(a), key: key};
             }
             return null;
         }
@@ -230,7 +227,7 @@ function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): 
     const keys = nodes.index(actions);
     return nodes.basic({
         peekable: actions,
-        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
             let key = r.key;
             let a: meta.Action|undefined;
             if (key != null) {
@@ -249,7 +246,7 @@ function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): 
                 if (key == null) {
                     throw new Error('illegal state');
                 }
-                return {n: actionNode(a), key: key};
+                return {node: actionNode(a), key: key};
             }
             return null;
         }
@@ -260,7 +257,7 @@ function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notificati
     const keys = nodes.index(notifys);
     return nodes.basic({
         peekable: notifys,
-        onNext: function(r: node.ListRequest): ({n: node.Node; key: val.Value[]} | null) {
+        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
             let key = r.key;
             let x: meta.Notification|undefined;
             if (key != null) {
@@ -279,7 +276,7 @@ function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notificati
                 if (key == null) {
                     throw new Error('illegal state');
                 }
-                return {n: notifyNode(x), key: key};
+                return {node: notifyNode(x), key: key};
             }
             return null;
         }
