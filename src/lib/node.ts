@@ -190,40 +190,32 @@ export class ValueHandle {
     val: val.Value;
 }
 
-class PathSlice {
-    head: Path;
-    tail: Path;
-
-    static parse(s: string, mod: meta.Module): PathSlice {
-        const segs = s.split('/');
-        let def: Definition = mod;
-        let p = new Path(def);
-        const slice = {
-            head: p,
-            tail: p
-        } as PathSlice;
-        for (let i = 0; i < segs.length; i++) {
-            // a/b/c same as a/b/c/
-            if (segs[i] === '') {
-                break;
-            }
-
-            const eq = segs[i].indexOf('=');
-            let ident: string;
-            let keys: (val.Value[]|undefined);
-            if (eq >= 0) {
-                ident = segs[i].substr(0, eq);
-                const keyStrs = segs[i].substr(eq + 1).split(',');
-                keys = values((def as meta.List).keyMeta, ...keyStrs);
-            } else {
-                ident = segs[i];
-            }
-            def = (def as Nodeable).definition(ident);
-            p = new Path(def, p, keys as val.Value[]);
-            slice.tail = p;
+export function parse(s: string, mod: meta.Module): Path[] {
+    const segs = s.split('/');
+    let def: Definition = mod;
+    let p = new Path(def);
+    const slice = [p];
+    for (let i = 0; i < segs.length; i++) {
+        // a/b/c same as a/b/c/
+        if (segs[i] === '') {
+            break;
         }
-        return slice;
+
+        const eq = segs[i].indexOf('=');
+        let ident: string;
+        let keys: (val.Value[]|undefined);
+        if (eq >= 0) {
+            ident = segs[i].substr(0, eq);
+            const keyStrs = segs[i].substr(eq + 1).split(',');
+            keys = values((def as meta.List).keyMeta, ...keyStrs);
+        } else {
+            ident = segs[i];
+        }
+        def = (def as Nodeable).definition(ident);
+        p = new Path(def, p, keys as val.Value[]);
+        slice.push(p);
     }
+    return slice;
 }
 
 export class Path {
