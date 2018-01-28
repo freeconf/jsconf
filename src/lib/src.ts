@@ -16,7 +16,7 @@ export function multi(...srcs: Source[]): Source {
                 }
             }
             throw new Error(`resource ${name}.${ext} not found in any source.`);
-        }        
+        }
     };
 }
 

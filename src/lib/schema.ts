@@ -6,17 +6,17 @@ import * as nodes from './nodes.js';
 
 console.log('schema.ts');
 
-export function load(data: any): meta.Module {
+export async function load(data: any): Promise<meta.Module> {
     const m = new meta.Module('x');
     const b = new node.Browser(yangModule(), schemaNode(m));
-    b.Root().upsertFrom(nodes.reflect({obj: data}));
+    await b.Root().upsertFrom(nodes.reflect({obj: data}));
     return m;
 }
 
 export function schemaNode(m: meta.Module): node.Node {
     return nodes.basic({
         peekable: m,
-        onChild: function(r: node.ChildRequest): (node.Node | null) {
+        onChild: function(r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'module':
                 return moduleNode(m);
@@ -34,7 +34,7 @@ function metaNode(m: meta.Meta): node.Node {
 function definitionNode(m: meta.Definition): node.Node {
     return nodes.extend({
         base: metaNode(m),
-        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+        onChild: function(base: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'action':
                 const ha: meta.HasActions = (m as meta.HasActions);
@@ -55,7 +55,7 @@ function definitionNode(m: meta.Definition): node.Node {
                 }
                 break;
             default:
-                return p.child(r);
+                return base.child(r);
             }
             return null;
         }
@@ -65,24 +65,22 @@ function definitionNode(m: meta.Definition): node.Node {
 function actionNode(action: meta.Action): node.Node {
     return nodes.extend({
         base: metaNode(action),
-        onChild: function(_: node.Node, r: node.ChildRequest): (node.Node | null) {
+        onChild: function(_: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'input':
-                let i: meta.RpcInput|undefined;
                 if (r.create) {
-                    i = new meta.RpcInput(action);
+                    action.input = new meta.RpcInput(action);
                 }
-                if (i != null) {
-                    return metaNode(i);
+                if (action.input != null) {
+                    return metaNode(action.input);
                 }
                 break;
             case 'output':
-                let o: meta.RpcOutput|undefined;
                 if (r.create) {
-                    o = new meta.RpcOutput(action);
+                    action.output = new meta.RpcOutput(action);
                 }
-                if (o != null) {
-                    return metaNode(o);
+                if (action.output != null) {
+                    return metaNode(action.output);
                 }
                 break;
             }
@@ -94,7 +92,7 @@ function actionNode(action: meta.Action): node.Node {
 function choiceNode(c: meta.Choice): node.Node {
     return nodes.extend({
         base: definitionNode(c),
-        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+        onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'cases':
 
@@ -133,7 +131,7 @@ function typeNode(t: meta.Type): node.Node {
 function leafyNode(d: meta.Leafable): node.Node {
     return nodes.extend({
         base: definitionNode(d),
-        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+        onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'type':
                 if (r.create) {
@@ -154,7 +152,7 @@ function leafyNode(d: meta.Leafable): node.Node {
 function dataDefNode(d: meta.Definition): node.Node {
     return nodes.extend({
         base: definitionNode(d),
-        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+        onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'leaf':
             case 'leaf-list':
@@ -181,7 +179,7 @@ function notifyNode(notify: meta.Notification): node.Node {
 function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node {
     return nodes.basic({
         peekable: defs,
-        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
+        onNext: function(r: node.ListRequest) {
             let key = r.key;
             let a: meta.Definition | undefined;
             if (key !== undefined) {
@@ -198,7 +196,7 @@ function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node
                 key = [val.str(a.ident)];
             }
             if (a !== undefined) {
-                return {node: dataDefNode(a), key: key};
+                return [dataDefNode(a), key];
             }
             return null;
         }
@@ -227,7 +225,7 @@ function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): 
     const keys = nodes.index(actions);
     return nodes.basic({
         peekable: actions,
-        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
+        onNext: function(r: node.ListRequest) {
             let key = r.key;
             let a: meta.Action|undefined;
             if (key != null) {
@@ -246,7 +244,7 @@ function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): 
                 if (key == null) {
                     throw new Error('illegal state');
                 }
-                return {node: actionNode(a), key: key};
+                return [actionNode(a), key];
             }
             return null;
         }
@@ -257,7 +255,7 @@ function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notificati
     const keys = nodes.index(notifys);
     return nodes.basic({
         peekable: notifys,
-        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
+        onNext: function(r: node.ListRequest) {
             let key = r.key;
             let x: meta.Notification|undefined;
             if (key != null) {
@@ -276,7 +274,7 @@ function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notificati
                 if (key == null) {
                     throw new Error('illegal state');
                 }
-                return {node: notifyNode(x), key: key};
+                return [notifyNode(x), key];
             }
             return null;
         }
@@ -286,7 +284,7 @@ function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notificati
 function moduleNode(m: meta.Module): node.Node {
     return nodes.extend({
         base: definitionNode(m),
-        onChild: function(p: node.Node, r: node.ChildRequest): (node.Node | null) {
+        onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
             case 'revision':
                 if (r.create) {

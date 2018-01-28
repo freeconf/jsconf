@@ -2,16 +2,16 @@
 /// <reference path='../../node_modules/@types/chai/index.d.ts' />
 
 import * as schema from '../lib/schema.js';
+import * as meta from '../lib/meta.js';
 
-suite('freeconf', () => {
-    suite('src', () => {
-        test('x', (done) => {
-            fetch('/src/test/yang/x.json').then((resp: Response) => {
-                resp.json().then((data: any) => {
-                    const m = schema.load(data);
-                    assert.equal("x", m.ident);
+suite('src', () => {
+    test('load', (done) => {
+        fetch('/src/test/yang/x.json').then((resp: Response) => {
+            resp.json().then((data: any) => {
+                schema.load(data).then((m: meta.Module) => {
+                    assert.equal('x', m.ident);
                     done();
-                })
+                });
             });
         });
     });

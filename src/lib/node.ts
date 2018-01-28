@@ -37,33 +37,38 @@ export class FieldRequest {
 }
 
 export class ChildRequest {
-    readonly path: Path;
-    readonly selection: Selection;
-    readonly meta: meta.Nodeable;
-    readonly from?: Selection;
-    readonly base?: Path;
-    readonly create: boolean = false;
-    readonly del: boolean = false;
-    readonly target?: Path;
 
+    constructor(
+        readonly selection: Selection,
+        readonly meta: meta.Nodeable,
+        readonly path: Path,
+        readonly from?: Selection,
+        readonly base?: Path,
+        readonly create: boolean = false,
+        readonly del: boolean = false,
+        readonly target?: Path
+    ) {
+    }
+
+    isNavigation(): boolean {
+        return this.target !== undefined;
+    }
 
     static reader(s: Selection, meta: meta.Nodeable): ChildRequest {
-        return {
-            selection: s,
-            meta: meta,
-            path : new Path(meta, s.path),
-        } as ChildRequest;
+        return new ChildRequest(
+            s,
+            meta,
+            new Path(meta, s.path));
     }
 
     static writer(s: Selection, meta: meta.Nodeable, from: Selection, base: Path): ChildRequest {
-        return {
-            selection: s,
-            meta: meta,
-            path : new Path(meta, s.path),
-            from: from,
-            base: base,
-            create: true
-        } as ChildRequest;
+        return new ChildRequest(
+            s,
+            meta,
+            new Path(meta, s.path),
+            from,
+            base,
+            true);
     }
 }
 
@@ -228,7 +233,15 @@ export class Path {
         public readonly key?: val.Value[]) {
     }
 
+    toStringNoModule(): string {
+        return this._toString(false);
+    }
+
     toString(): string {
+        return this._toString(true);
+    }
+
+    _toString(showModule: boolean): string {
         let s = this.meta.ident;
         if (this.key !== undefined) {
             s += '=';
@@ -243,6 +256,11 @@ export class Path {
         if (this.parent === undefined) {
             return s;
         }
+
+        if (!showModule && this.parent instanceof meta.Module) {
+            return s;
+        }
+
         return this.parent.toString() + '/' + s;
     }
 }
@@ -345,10 +363,10 @@ export class Selection {
         this.node.field(r, hnd);
     }
 
-    select(r: ChildRequest): (Selection | null) {
+    async select(r: ChildRequest): Promise<Selection | null> {
         // TODO: Check pre/post constraints
-        const child = this.node.child(r);
-        if (child != null) {
+        const child = await this.node.child(r);
+        if (child !== null) {
             return new Selection(
                 this.browser,
                 child,
@@ -356,31 +374,30 @@ export class Selection {
                 this.context,
                 this,
             );
-            // call/set node.context
         }
-
         return null;
     }
 
-    selectListItem(r: ListRequest): (Selection | null) {
+    async selectListItem(r: ListRequest): Promise<Selection | null> {
         // TODO: Check pre/post constraints
-        const child = this.node.next(r);
-        if (child === null) {
+        const resp = await this.node.next(r);
+        if (resp === null) {
             return null;
         }
-        let path: Path; 
+        const [child, key] = resp;
+        let path: Path;
         if (r.meta.keyMeta.length > 0) {
-            if (child.key === undefined) {
+            if (key === undefined) {
                 throw new Error('no key returned for ' + r.path.toString());
-            }    
+            }
             // NOTE: use this.path.parent not, this.path so list is not in twice
-            path = new Path(r.meta, this.path.parent as Path, child.key);
+            path = new Path(r.meta, this.path.parent as Path, key);
         } else {
-            path = new Path(r.meta, this.path.parent as Path);            
+            path = new Path(r.meta, this.path.parent as Path);
         }
         return new Selection(
             this.browser,
-            child.node,
+            child,
             path,
             this.context,
             this,
@@ -388,34 +405,34 @@ export class Selection {
         );
     }
 
-    insertInto(to: Node): void {
+    async insertInto(to: Node) {
         const e = new Editor(this.path);
-        e.edit(this, this.split(to), strategy.insert);
+        await e.edit(this, this.split(to), strategy.insert);
     }
 
-    insertFrom(from: Node): void {
+    async insertFrom(from: Node) {
         const e = new Editor(this.path);
-        e.edit(this.split(from), this, strategy.insert);
+        await e.edit(this.split(from), this, strategy.insert);
     }
 
-    upsertInto(to: Node): void {
+    async upsertInto(to: Node) {
         const e = new Editor(this.path);
-        e.edit(this, this.split(to), strategy.upsert);
+        await e.edit(this, this.split(to), strategy.upsert);
     }
 
-    upsertFrom(from: Node): void {
+    async upsertFrom(from: Node) {
         const e = new Editor(this.path);
-        e.edit(this.split(from), this, strategy.upsert);
+        await e.edit(this.split(from), this, strategy.upsert);
     }
 
-    updateInto(to: Node): void {
+    async updateInto(to: Node) {
         const e = new Editor(this.path);
-        e.edit(this, this.split(to), strategy.update);
+        await e.edit(this, this.split(to), strategy.update);
     }
 
-    updateFrom(from: Node): void {
+    async updateFrom(from: Node) {
         const e = new Editor(this.path);
-        e.edit(this.split(from), this, strategy.update);
+        await e.edit(this.split(from), this, strategy.update);
     }
 
     split(n: Node): Selection {
@@ -475,10 +492,10 @@ export class Selection {
         return null;
     }
 
-    action(input?: Node): (Selection | null) {
+    async action(input?: Node): Promise<Selection | null> {
         // TODO: check constraints
         const r = ActionRequest.create(this, this.meta as meta.Action, input);
-        const output = this.node.action(r);
+        const output = await this.node.action(r);
         if (output != null) {
             return new Selection(
                 this.browser,
@@ -492,21 +509,28 @@ export class Selection {
     }
 }
 
-export interface ListResponse {
-    node: Node
-    key?: val.Value[]
-}
+export type ListItemTuple = [Node, val.Value[] | undefined];
+
+export type ListResponse = ListItemTuple | Promise<ListItemTuple | null> | null;
+
+export type ChildResponse = Node | Promise<Node | null> | null;
+
+export type ActionResponse = Node | Promise<Node | null> | null;
+
+export type NotifyResponse = NotifyCloser | null;
+
+export type EmptyResponse = void | Promise<void>;
 
 export interface Node {
-    child(r: ChildRequest): (Node | null);
-    field(r: FieldRequest, hnd: ValueHandle): void;
-    next(r: ListRequest): (ListResponse | null);
+    child(r: ChildRequest): ChildResponse;
+    field(r: FieldRequest, hnd: ValueHandle): EmptyResponse;
+    next(r: ListRequest): ListResponse;
     choose(sel: Selection, choice: meta.Choice): meta.ChoiceCase;
-    remove(r: NodeRequest): void;
-    beginEdit(r: NodeRequest): void;
-    endEdit(r: NodeRequest): void;
-    action(r: ActionRequest): (Node|null);
-    notify(r: NotifyRequest): (NotifyCloser | null);
+    remove(r: NodeRequest): EmptyResponse;
+    beginEdit(r: NodeRequest): EmptyResponse;
+    endEdit(r: NodeRequest): EmptyResponse;
+    action(r: ActionRequest): ActionResponse;
+    notify(r: NotifyRequest): NotifyResponse;
     peek(s: Selection, consumer: any): (any | null);
     context(s: Selection, ctx: Map<string, any>): Map<string, any>;
 }

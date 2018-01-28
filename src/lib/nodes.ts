@@ -3,50 +3,6 @@ import * as node from './node.js';
 
 console.log('nodes.ts');
 
-export interface OnChild {
-    (r: node.ChildRequest): (node.Node|null);
-}
-
-export interface OnField {
-    (r: node.FieldRequest, hnd: node.ValueHandle): void;
-}
-
-export interface OnNext {
-    (r: node.ListRequest): (node.ListResponse | null);
-}
-
-export interface OnChoose {
-    (r: node.Selection, c: meta.Choice): meta.ChoiceCase;
-}
-
-export interface OnDelete {
-    (r: node.NodeRequest): void;
-}
-
-export interface OnBeginEdit {
-    (r: node.NodeRequest): void;
-}
-
-export interface OnEndEdit {
-    (r: node.NodeRequest): void;
-}
-
-export interface OnAction {
-    (r: node.ActionRequest): (node.Node|null);
-}
-
-export interface OnNotify {
-    (r: node.NotifyRequest): (node.NotifyCloser|null);
-}
-
-export interface OnPeek {
-    (s: node.Selection, consumer: any): (any|null);
-}
-
-export interface OnContext {
-    (s: node.Selection, ctx: Map<string, any>): Map<string, any>;
-}
-
 export class Basic {
     peekable?: any;
     onChild?: OnChild;
@@ -62,13 +18,36 @@ export class Basic {
     onContext?: OnContext;
 }
 
+export type OnChild =  (r: node.ChildRequest) => node.ChildResponse;
+
+export type OnField = (r: node.FieldRequest, hnd: node.ValueHandle) => void;
+
+export type OnNext = (r: node.ListRequest) => node.ListResponse;
+
+export type OnChoose = (r: node.Selection, c: meta.Choice) => meta.ChoiceCase;
+
+export type OnDelete = (r: node.NodeRequest) => void;
+
+export type OnBeginEdit = (r: node.NodeRequest) => void;
+
+export type OnEndEdit = (r: node.NodeRequest) => void;
+
+export type OnAction = (r: node.ActionRequest) => node.ActionResponse;
+
+export type OnNotify = (r: node.NotifyRequest) => (node.NotifyCloser | null);
+
+export type OnPeek = (s: node.Selection, consumer: any) => (any|null);
+
+export type OnContext = (s: node.Selection, ctx: Map<string, any>) => Map<string, any>;
+
+
 export function basic(self: Basic): node.Node {
     return {
-        child(r: node.ChildRequest): (node.Node|null) {
-            if (self.onChild == null) {
-                throw new Error('Child not implemented on node ' + r.selection.path);
+        child(r: node.ChildRequest): node.ChildResponse {
+            if (self.onChild != null) {
+                return self.onChild(r);
             }
-            return self.onChild(r);
+            throw new Error('Child not implemented on node ' + r.selection.path);
         },
 
         field(r: node.FieldRequest, hnd: node.ValueHandle) {
@@ -78,7 +57,7 @@ export function basic(self: Basic): node.Node {
             return self.onField(r, hnd);
         },
 
-        next(r: node.ListRequest): (node.ListResponse | null) {
+        next(r: node.ListRequest): node.ListResponse {
             if (self.onNext == null) {
                 throw new Error('Next not implemented on node ' + r.selection.path);
             }
@@ -113,7 +92,7 @@ export function basic(self: Basic): node.Node {
             return self.onEndEdit(r);
         },
 
-        action(r: node.ActionRequest): (node.Node|null) {
+        action(r: node.ActionRequest): node.ActionResponse {
             if (self.onAction == null) {
                 throw new Error('Action not implemented on node ' + r.selection.path);
             }
@@ -161,11 +140,11 @@ export class Extend {
 
 export function extend(self: Extend): node.Node {
     return {
-        child(r: node.ChildRequest): (node.Node|null) {
-            if (self.onChild == null) {
-                return self.base.child(r);
+        child(r: node.ChildRequest) {
+            if (self.onChild !== undefined) {
+                return self.onChild(self.base, r);
             }
-            return self.onChild(self.base, r);
+            return self.base.child(r);
         },
 
         field(r: node.FieldRequest, hnd: node.ValueHandle) {
@@ -176,14 +155,14 @@ export function extend(self: Extend): node.Node {
             }
         },
 
-        next(r: node.ListRequest): (node.ListResponse | null) {
+        next(r: node.ListRequest) {
             if (self.onNext == null) {
                 return self.base.next(r);
             }
             return self.onNext(self.base, r);
         },
 
-        choose(sel: node.Selection, choice: meta.Choice): meta.ChoiceCase {
+        choose(sel: node.Selection, choice: meta.Choice) {
             if (self.onChoose == null) {
                 return self.base.choose(sel, choice);
             }
@@ -214,16 +193,16 @@ export function extend(self: Extend): node.Node {
             }
         },
 
-        action(r: node.ActionRequest): (node.Node|null) {
+        action(r: node.ActionRequest) {
             if (self.onAction == null) {
-                throw new Error('Action not implemented on node ' + r.selection.path);
+                throw new Error('action not implemented on node ' + r.selection.path);
             }
             return self.onAction(self.base, r);
         },
 
-        notify(r: node.NotifyRequest): (node.NotifyCloser|null) {
+        notify(r: node.NotifyRequest) {
             if (self.onNotify == null) {
-                throw new Error('Action not implemented on node ' + r.selection.path);
+                throw new Error('notify not implemented on node ' + r.selection.path);
             }
             return self.onNotify(self.base, r);
         },
@@ -235,7 +214,7 @@ export function extend(self: Extend): node.Node {
             return self.onPeek(self.base, s, consumer);
         },
 
-        context(s: node.Selection, ctx: Map<string, any>): Map<string, any> {
+        context(s: node.Selection, ctx: Map<string, any>) {
             if (self.onContext == null) {
                 return ctx;
             }
@@ -244,49 +223,27 @@ export function extend(self: Extend): node.Node {
     };
 }
 
-export interface OnExtendChild {
-    (parent: node.Node, r: node.ChildRequest): (node.Node|null);
-}
+export type OnExtendChild = (parent: node.Node, r: node.ChildRequest) => node.ChildResponse;
 
-export interface OnExtendField {
-    (parent: node.Node, r: node.FieldRequest, hnd: node.ValueHandle): void;
-}
+export type OnExtendField = (parent: node.Node, r: node.FieldRequest, hnd: node.ValueHandle) => void;
 
-export interface OnExtendNext {
-    (parent: node.Node, r: node.ListRequest): (node.ListResponse | null);
-}
+export type OnExtendNext = (parent: node.Node, r: node.ListRequest) => node.ListResponse;
 
-export interface OnExtendChoose {
-    (parent: node.Node, r: node.Selection, c: meta.Choice): meta.ChoiceCase;
-}
+export type OnExtendChoose = (parent: node.Node, r: node.Selection, c: meta.Choice) => meta.ChoiceCase;
 
-export interface OnExtendDelete {
-    (parent: node.Node, r: node.NodeRequest): void;
-}
+export type OnExtendDelete = (parent: node.Node, r: node.NodeRequest) => void;
 
-export interface OnExtendBeginEdit {
-    (parent: node.Node, r: node.NodeRequest): void;
-}
+export type OnExtendBeginEdit = (parent: node.Node, r: node.NodeRequest) => void;
 
-export interface OnExtendEndEdit {
-    (parent: node.Node, r: node.NodeRequest): void;
-}
+export type OnExtendEndEdit = (parent: node.Node, r: node.NodeRequest) => void;
 
-export interface OnExtendAction {
-    (parent: node.Node, r: node.ActionRequest): (node.Node|null);
-}
+export type OnExtendAction = (parent: node.Node, r: node.ActionRequest) => node.ActionResponse;
 
-export interface OnExtendNotify {
-    (parent: node.Node, r: node.NotifyRequest): (node.NotifyCloser|null);
-}
+export type OnExtendNotify = (parent: node.Node, r: node.NotifyRequest) => (node.NotifyCloser|null);
 
-export interface OnExtendPeek {
-    (parent: node.Node, s: node.Selection, consumer: any): (any|null);
-}
+export type OnExtendPeek = (parent: node.Node, s: node.Selection, consumer: any) => (any|null);
 
-export interface OnExtendContext {
-    (parent: node.Node, s: node.Selection, ctx: Map<string, any>): Map<string, any>;
-}
+export type OnExtendContext = (parent: node.Node, s: node.Selection, ctx: Map<string, any>) => Map<string, any>;
 
 export class Reflect {
     obj: any;
@@ -309,7 +266,7 @@ export function reflectList(self: Reflect): node.Node {
 function reflectChildObject(self: Reflect): node.Node {
     return basic({
         peekable: self.obj,
-        onChoose: function(sel: node.Selection, choice: meta.Choice): meta.ChoiceCase {
+        onChoose: function(sel: node.Selection, choice: meta.Choice) {
             for (const [_, kase] of choice.cases) {
                 for (const d of kase.dataDef) {
                     if (reflectProp(self.obj, d.ident) != null) {
@@ -319,7 +276,7 @@ function reflectChildObject(self: Reflect): node.Node {
             }
             throw new Error('not enough data to determine choice case ' + sel.path);
         },
-        onChild: function(r: node.ChildRequest): (node.Node | null) {
+        onChild: function(r: node.ChildRequest) {
             const prop = Object.getOwnPropertyDescriptor(self.obj, r.meta.ident);
             let val: any;
             if (r.create) {
@@ -381,7 +338,7 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
     const i = index(x);
     return basic({
         peekable: x,
-        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
+        onNext: function(r: node.ListRequest): node.ListResponse {
             let item: any;
             let key = r.key;
             if (r.create) {
@@ -399,12 +356,12 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
                     key = node.values(r.meta.keyMeta, keyVal);
                 }
             }
-            if (item != undefined) {
+            if (item !== undefined) {
                 const n = reflect({obj: item, onCreate: self.onCreate});
                 if (n === undefined || key === undefined) {
                     throw new Error('illegal state');
                 }
-                return {node: n, key: key};
+                return [n, key];
             }
             return null;
         }
@@ -414,7 +371,7 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
 function reflectListArray(self: Reflect, x: any[]): node.Node {
     return basic({
         peekable: x,
-        onNext: function(r: node.ListRequest): (node.ListResponse | null) {
+        onNext: function(r: node.ListRequest): node.ListResponse {
             let item: any;
             let key = r.key;
             if (r.create) {
@@ -436,7 +393,7 @@ function reflectListArray(self: Reflect, x: any[]): node.Node {
                 if (n === undefined) {
                     throw new Error('illegal state');
                 }
-                return {node: n, key: key};
+                return [n, key];
             }
             return null;
         }
@@ -450,4 +407,10 @@ export function index<K, V>(m: Map<K, V>): K[] {
         keys[i++] = k;
     }
     return keys;
+}
+
+export function toJson(s: node.Selection): string {
+    const data = {};
+    s.insertInto(reflect({obj: data}));
+    return JSON.stringify(data);
 }

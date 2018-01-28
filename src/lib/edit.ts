@@ -66,19 +66,19 @@ export class Editor {
     useDefault: boolean;
     constructor(public basePath: node.Path) {}
 
-    edit(from: node.Selection, to: node.Selection, strategy: strategy) {
-        this.enter(from, to, false, strategy, true, true);
+    async edit(from: node.Selection, to: node.Selection, strategy: strategy) {
+        await this.enter(from, to, false, strategy, true, true);
     }
 
-    enter(from: node.Selection, to: node.Selection, create: boolean, strategy: strategy, root: boolean, bubble: boolean) {
-        to.beginEdit({
+    async enter(from: node.Selection, to: node.Selection, create: boolean, strategy: strategy, root: boolean, bubble: boolean) {
+        await to.beginEdit({
             create: create,
             source: to,
             editRoot: root
         } as node.NodeRequest, bubble);
 
         if ((from.meta instanceof meta.List) && !from.insideList) {
-            this.list(from, to, from.meta as meta.List, create, strategy);
+            await this.list(from, to, from.meta as meta.List, create, strategy);
         } else {
             const i = new DefIterator(from);
             while (i.hasNext()) {
@@ -86,26 +86,26 @@ export class Editor {
                 if (meta.isLeaf(d)) {
                     this.leaf(from, to, d as meta.Leafable, create, strategy);
                 } else {
-                    this.node(from, to, d as meta.Nodeable, create, strategy);
+                    await this.node(from, to, d as meta.Nodeable, create, strategy);
                 }
             }
         }
-        to.endEdit({
+        await to.endEdit({
             source: to,
             create: create,
             editRoot: root
         } as node.NodeRequest, bubble);
     }
 
-    list(from: node.Selection, to: node.Selection, meta: meta.List, _: boolean, s: strategy) {
+    async list(from: node.Selection, to: node.Selection, meta: meta.List, _: boolean, s: strategy) {
         let rFrom = node.ListRequest.readerByRow(from, meta, 0);
-        let fromChild = from.selectListItem(rFrom);
+        let fromChild = await from.selectListItem(rFrom);
         while (fromChild != null) {
             let newChild = false;
             let toChild: (node.Selection | null);
             if (fromChild.key != null) {
                 const rTo = node.ListRequest.readerByKey(to, meta, fromChild.key);
-                toChild = to.selectListItem(rTo);
+                toChild = await to.selectListItem(rTo);
             } else {
                 toChild = null;
             }
@@ -114,14 +114,14 @@ export class Editor {
             switch (s) {
             case strategy.insert:
                 if (toChild != null) {
-                    throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`);
+                    throw new Error(`duplicate item '${meta.ident}' found in '${rFrom.path}'`);
                 }
-                toChild = to.selectListItem(wTo);
+                toChild = await to.selectListItem(wTo);
                 newChild = true;
                 break;
             case strategy.upsert:
                 if (toChild == null) {
-                    toChild = to.selectListItem(wTo);
+                    toChild = await to.selectListItem(wTo);
                     newChild = true;
                 }
                 break;
@@ -135,21 +135,22 @@ export class Editor {
             if (toChild == null) {
                 throw new Error(`'${wTo.path}' could not create '${meta.ident}' container node.`);
             }
-            this.enter(fromChild, toChild, newChild, s, false, false);
+            await this.enter(fromChild, toChild, newChild, s, false, false);
 
-            rFrom = rFrom.next();
-            fromChild = from.selectListItem(rFrom);
+            rFrom = await rFrom.next();
+            fromChild = await from.selectListItem(rFrom);
         }
     }
 
-    node(from: node.Selection, to: node.Selection, meta: meta.Nodeable, _: boolean, s: strategy) {
+    async node(from: node.Selection, to: node.Selection, meta: meta.Nodeable, _: boolean, s: strategy) {
         const rFrom = node.ChildRequest.reader(from, meta);
-        const fromChild = from.select(rFrom);
+        const fromChild = await from.select(rFrom);
         if (fromChild == null) {
             return;
         }
         const rTo = node.ChildRequest.reader(to, meta);
-        let toChild = to.select(rTo);
+        let toChild = await to.select(rTo);
+
         let newChild = false;
 
         const wTo = node.ChildRequest.writer(to, meta, fromChild, this.basePath);
@@ -158,12 +159,12 @@ export class Editor {
             if (toChild != null) {
                 throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`);
             }
-            toChild = to.select(wTo);
+            toChild = await to.select(wTo);
             newChild = true;
             break;
         case strategy.upsert:
             if (toChild == null) {
-                toChild = to.select(wTo);
+                toChild = await to.select(wTo);
                 newChild = true;
             }
             break;
@@ -177,7 +178,7 @@ export class Editor {
         if (toChild == null) {
             throw new Error(`'${wTo.path}' could not create '${meta.ident}' container node`);
         }
-        this.enter(fromChild, toChild, newChild, s, false, false);
+        await this.enter(fromChild, toChild, newChild, s, false, false);
     }
 
     leaf(from: node.Selection, to: node.Selection, meta: meta.Leafable, create: boolean, s: strategy) {
