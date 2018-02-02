@@ -1,20 +1,22 @@
 
-import * as node from './node.js';
-import * as meta from './meta.js';
-import * as val from './val.js';
-import * as nodes from './nodes.js';
+import * as node from '../node.js';
+import * as basic from './basic.js';
+import * as extend from './extend.js';
+import * as reflect from './reflect.js';
+import * as meta from '../meta.js';
+import * as val from '../val.js';
 
 console.log('schema.ts');
 
 export async function load(data: any): Promise<meta.Module> {
     const m = new meta.Module('');
     const b = new node.Browser(yangModule(), schemaNode(m));
-    await b.Root().upsertFrom(nodes.reflect({obj: data}));
+    await b.Root().upsertFrom(reflect.node({obj: data}));
     return m;
 }
 
 export function schemaNode(m: meta.Module): node.Node {
-    return nodes.basic({
+    return basic.node({
         peekable: m,
         onChild: function(r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -28,11 +30,11 @@ export function schemaNode(m: meta.Module): node.Node {
 
 function metaNode(m: meta.Meta): node.Node {
     // ident, description, reference
-    return nodes.reflect({obj: m});
+    return reflect.node({obj: m});
 }
 
 function definitionNode(m: meta.Definition): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: metaNode(m),
         onChild: function(base: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -63,7 +65,7 @@ function definitionNode(m: meta.Definition): node.Node {
 }
 
 function actionNode(action: meta.Action): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: metaNode(action),
         onChild: function(_: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -90,7 +92,7 @@ function actionNode(action: meta.Action): node.Node {
 }
 
 function choiceNode(c: meta.Choice): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: definitionNode(c),
         onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -104,14 +106,14 @@ function choiceNode(c: meta.Choice): node.Node {
 }
 
 function nodeableNode(l: meta.Nodeable): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: definitionNode(l),
     });
 }
 
 function typeNode(t: meta.Type): node.Node {
-    return nodes.extend({
-        base: nodes.reflect({obj: t}),
+    return extend.node({
+        base: reflect.node({obj: t}),
         onField: function(p: node.Node, r: node.FieldRequest, hnd: node.ValueHandle) {
             switch (r.meta.ident) {
             case 'format':
@@ -129,7 +131,7 @@ function typeNode(t: meta.Type): node.Node {
 }
 
 function leafyNode(d: meta.Leafable): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: definitionNode(d),
         onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -150,7 +152,7 @@ function leafyNode(d: meta.Leafable): node.Node {
 }
 
 function dataDefNode(d: meta.Definition): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: definitionNode(d),
         onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -171,13 +173,13 @@ function dataDefNode(d: meta.Definition): node.Node {
 }
 
 function notifyNode(notify: meta.Notification): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: metaNode(notify)
     });
 }
 
 function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node {
-    return nodes.basic({
+    return basic.node({
         peekable: defs,
         onNext: function(r: node.ListRequest) {
             let key = r.key;
@@ -222,8 +224,8 @@ function createDefinition(parent: meta.Nodeable, metaType: string, ident: string
 }
 
 function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): node.Node {
-    const keys = nodes.index(actions);
-    return nodes.basic({
+    const keys = reflect.index(actions);
+    return basic.node({
         peekable: actions,
         onNext: function(r: node.ListRequest) {
             let key = r.key;
@@ -252,8 +254,8 @@ function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): 
 }
 
 function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notification>): node.Node {
-    const keys = nodes.index(notifys);
-    return nodes.basic({
+    const keys = reflect.index(notifys);
+    return basic.node({
         peekable: notifys,
         onNext: function(r: node.ListRequest) {
             let key = r.key;
@@ -282,7 +284,7 @@ function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notificati
 }
 
 function moduleNode(m: meta.Module): node.Node {
-    return nodes.extend({
+    return extend.node({
         base: definitionNode(m),
         onChild: function(p: node.Node, r: node.ChildRequest) {
             switch (r.meta.ident) {
@@ -291,7 +293,7 @@ function moduleNode(m: meta.Module): node.Node {
                     m.revision = {};
                 }
                 if (m.revision != null) {
-                    return nodes.reflect({obj: m.revision});
+                    return reflect.node({obj: m.revision});
                 }
                 break;
             default:

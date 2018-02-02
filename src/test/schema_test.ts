@@ -2,11 +2,11 @@
 /// <reference path='../../node_modules/@types/chai/index.d.ts' />
 
 import * as meta from '../lib/meta.js';
-import * as schema from '../lib/schema.js';
+import * as schema from '../lib/nodes/schema.js';
 import * as val from '../lib/val.js';
 import * as node from '../lib/node.js';
-import * as nodes from '../lib/nodes.js';
-import { yangModule } from '../lib/schema.js';
+import * as reflect from '../lib/nodes/reflect.js';
+import { yangModule } from '../lib/nodes/schema.js';
 
 suite('schema', () => {
 
@@ -99,9 +99,9 @@ suite('schema', () => {
                 l2 : 32
             }
         };
-        const b = new node.Browser(m, nodes.reflect({obj: data}));
+        const b = new node.Browser(m, reflect.node({obj: data}));
         const copy = {};
-        b.Root().insertInto(nodes.reflect({obj: copy}));
+        b.Root().insertInto(reflect.node({obj: copy}));
         console.log(JSON.stringify(copy));
     });
 });

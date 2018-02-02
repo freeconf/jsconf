@@ -1,7 +1,7 @@
 /// <reference path='../../node_modules/@types/mocha/index.d.ts' />
 /// <reference path='../../node_modules/@types/chai/index.d.ts' />
 
-import * as schema from '../lib/schema.js';
+import * as schema from '../lib/nodes/schema.js';
 import * as meta from '../lib/meta.js';
 
 suite('src', () => {

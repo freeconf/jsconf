@@ -1,6 +1,9 @@
 import * as node from './node.js';
-import * as nodes from './nodes.js';
+import * as extend from './nodes/extend.js';
+import * as basic from './nodes/basic.js';
+import * as reflect from './nodes/reflect.js';
 import * as meta from './meta.js';
+import * as nodes from './nodes.js';
 import * as src from './src.js';
 import * as yang from './yang.js';
 import * as device from './device.js';
@@ -86,7 +89,7 @@ class Client implements device.Device, RestClient {
             },
             body: payload
         });
-        return nodes.reflect(await data.json());
+        return reflect.node(await data.json());
     }
 }
 
@@ -109,7 +112,7 @@ class ClientNode  {
     }
 
     node(): node.Node {
-        return nodes.basic({
+        return basic.node({
             onBeginEdit: async (r: node.NodeRequest) => {
                 if (!r.editRoot) {
                     return;
@@ -210,8 +213,8 @@ class ClientNode  {
 
     async startEditMode(p: node.Path): Promise<node.Node | null> {
         const existing = await this.get(p, 'depth=1&content=config&with-defaults=trim');
-        this.changes = nodes.reflect({obj: {}});
-        const edit = nodes.extend({
+        this.changes = reflect.node({obj: {}});
+        const edit = extend.node({
             base: this.changes,
             onChild: (base: node.Node, r: node.ChildRequest): node.ChildResponse => {
                 if (!r.create && existing !== null) {

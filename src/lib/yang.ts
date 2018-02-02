@@ -1,6 +1,6 @@
 
 import * as meta from './meta.js';
-import * as schema from './schema.js';
+import * as schema from './nodes/schema.js';
 import * as src from './src.js';
 
 console.log('yang.ts');

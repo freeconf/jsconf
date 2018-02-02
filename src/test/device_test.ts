@@ -11,7 +11,8 @@ suite('device', () => {
         const ypath = src.webDir("/test/yang/");
         const d = await bird.create(ypath);
         const actual = await nodes.toJson(d.browser("bird").Root());
-        assert.equal("x", actual);''
+        const expected = '{"bird":[{"name":"bluejay","wingspan":10,"species":{"name":"jay"}}]}';
+        assert.equal(expected, actual);''
     });
 });
 

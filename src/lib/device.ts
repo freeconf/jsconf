@@ -1,5 +1,7 @@
 import * as node from './node.js';
-import * as nodes from './nodes.js';
+import * as reflect from './nodes/reflect.js';
+import * as extend from './nodes/extend.js';
+import * as basic from './nodes/basic.js';
 import * as meta from './meta.js';
 
 console.log('device.ts');
@@ -31,7 +33,7 @@ export async function loadModules(ietfYangLib: node.Browser, resolver: Resolver)
 }
 
 function loadModulesListNode(mods:  Map<string, meta.Module>, resolver: Resolver): node.Node {
-    return nodes.basic({
+    return basic.node({
         onNext: (r: node.ListRequest) => {
             const key = r.key;
             if (r.create && key !== undefined) {
@@ -44,8 +46,8 @@ function loadModulesListNode(mods:  Map<string, meta.Module>, resolver: Resolver
 }
 
 function loadModuleNode(mods: Map<string, meta.Module>, resolver: Resolver, hnd: ModuleHnd): node.Node {
-    return nodes.extend({
-        base: nodes.reflect({obj: hnd}),
+    return extend.node({
+        base: reflect.node({obj: hnd}),
         onEndEdit: async (base: node.Node, r: node.NodeRequest) => {
             await base.endEdit(r);
             const mod = await resolver(hnd);
