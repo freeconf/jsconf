@@ -277,22 +277,14 @@ function reflectChildObject(self: Reflect): node.Node {
             throw new Error('not enough data to determine choice case ' + sel.path);
         },
         onChild: function(r: node.ChildRequest) {
-            const prop = Object.getOwnPropertyDescriptor(self.obj, r.meta.ident);
             let val: any;
             if (r.create) {
-                val = reflectCreate(self);
-                if (prop === undefined) {
-                    self.obj[r.meta.ident] = val;
-                } else {
-                    prop.value = val;
-                }
+                val = reflectCreate(r.selection, r.meta, self);
+                self.obj[r.meta.ident] = val;
             } else {
-                if (prop === undefined) {
-                    return null;
-                }
-                val = prop.value;
+                val = self.obj[r.meta.ident];
             }
-            if (val === null) {
+            if (val === null || val === undefined) {
                 return null;
             }
             if (r.meta instanceof meta.List) {
@@ -301,26 +293,20 @@ function reflectChildObject(self: Reflect): node.Node {
             return reflect({obj: val, onCreate: self.onCreate});
         },
         onField: function(r: node.FieldRequest, hnd: node.ValueHandle) {
-            const prop = Object.getOwnPropertyDescriptor(self.obj, r.meta.ident);
             if (r.write) {
-                if (prop === undefined) {
-                    self.obj[r.meta.ident] = hnd.val.val;
-                } else {
-                    // TODO: handle enums, test if destination is string or
-                    // number or enum (if this is even possible in TS)
-                    prop.value = hnd.val.val;
-                }
+                self.obj[r.meta.ident] = hnd.val.val;
             } else {
-                if (prop !== undefined) {
-                    hnd.val = node.value(r.meta, prop.value);
-                }
+                hnd.val = node.value(r.meta, self.obj[r.meta.ident]);
             }
         }
     });
 }
 
-function reflectCreate(self: Reflect): any {
+function reflectCreate(s: node.Selection, m: meta.Meta, self: Reflect): any {
     if (self.onCreate == null) {
+        if (m instanceof meta.List && !s.insideList) {
+            return [];
+        }
         return {};
     }
     return self.onCreate();
@@ -342,7 +328,7 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
             let item: any;
             let key = r.key;
             if (r.create) {
-                item = reflectCreate(self);
+                item = reflectCreate(r.selection, r.meta, self);
                 if (key == null) {
                     throw new Error('no key defined for ' + r.selection.path);
                 }
@@ -352,15 +338,17 @@ function reflectListMap(self: Reflect, x: Map<any, any>): node.Node {
             } else {
                 if (r.row < i.length) {
                     item = i[r.row];
-                    const keyVal = reflectProp(item, r.meta.key[0]);
-                    key = node.values(r.meta.keyMeta, keyVal);
+                    if (r.meta.keyMeta) {
+                        const keyVal = reflectProp(item, r.meta.key[0]);
+                        key = node.values(r.meta.keyMeta, keyVal);    
+                    }
                 }
             }
             if (item !== undefined) {
                 const n = reflect({obj: item, onCreate: self.onCreate});
-                if (n === undefined || key === undefined) {
-                    throw new Error('illegal state');
-                }
+                // if (n === undefined || key === undefined) {
+                //     throw new Error('illegal state');
+                // }
                 return [n, key];
             }
             return null;
@@ -375,14 +363,15 @@ function reflectListArray(self: Reflect, x: any[]): node.Node {
             let item: any;
             let key = r.key;
             if (r.create) {
-                item = reflectCreate(self);
-                if (key === null) {
-                    throw new Error('no key defined for ' + r.selection.path);
-                }
+                item = reflectCreate(r.selection, r.meta, self);
                 x.push(item);
             } else if (key != null) {
-                // possible to do, just not implemented
-                throw new Error('cannot lookup by key in array ' + r.selection.path);
+                for (let i = 0; i < x.length; i++) {
+                    if (x[i][r.meta.key[0]] == key[0].val) {
+                        item = x[i];
+                        break;
+                    }
+                }
             } else if (r.row < x.length) {
                 item = x[r.row];
                 const keyVal = reflectProp(item, r.meta.key[0]);
@@ -409,8 +398,8 @@ export function index<K, V>(m: Map<K, V>): K[] {
     return keys;
 }
 
-export function toJson(s: node.Selection): string {
+export async function toJson(s: node.Selection): Promise<string> {
     const data = {};
-    s.insertInto(reflect({obj: data}));
+    await s.insertInto(reflect({obj: data}));
     return JSON.stringify(data);
 }

@@ -3,12 +3,56 @@
 console.log('src.ts');
 
 export interface Source {
-    load(name: string, ext: string): Buffer;
+    load(name: string, ext: string): Promise<Blob>;
+}
+
+// export async function json(r: Blob): Promise<any> {
+//     if (typeof r === "string") {
+//         return JSON.parse(r);
+//     }
+//     if (r instanceof Buffer) {
+//         return JSON.parse(r.toString());
+//     }
+//     let data = r;
+//     if (typeof data === "string") {
+//         return JSON.parse(r.);
+//     }
+//     return data;
+// }
+
+//export type Resource = Promise<any> | Promise<string> | string | Blob;
+
+export function webDir(url: string): Source {
+    return {
+        load: async (name: string, _: string): Promise<Blob> => {
+            const data = await fetch(url + name + ".json", {
+                method: 'GET',
+                headers: {
+                    'Accept-type' : 'application/json'
+                }
+            });
+            return data.blob();
+        }
+    };
+}
+
+export function web(url: string): Source {
+    return {
+        load: async (name: string, _: string): Promise<Blob> => {
+            const data = await fetch(url + name, {
+                method: 'GET',
+                headers: {
+                    'Accept-type' : 'application/json'
+                }
+            });
+            return data.blob();
+        }
+    };
 }
 
 export function multi(...srcs: Source[]): Source {
     return {
-        load: (name: string, ext: string): Buffer => {
+        load: async (name: string, ext: string): Promise<Blob> => {
             for (const src of srcs) {
                 try {
                     return src.load(name, ext);
@@ -22,10 +66,10 @@ export function multi(...srcs: Source[]): Source {
 
 export function x(src: any): Source {
     return {
-        load: (name: string, ext: string): Buffer => {
+        load: async (name: string, ext: string): Promise<Blob> => {
             const found = src[name];
             if (found !== undefined) {
-                return new Buffer(JSON.stringify(found));
+                return Promise.resolve(new Blob([JSON.stringify(found)]));
             }
             throw new Error(`x source could not find ${name}.${ext}`);
         }

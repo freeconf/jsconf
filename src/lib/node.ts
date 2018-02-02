@@ -333,11 +333,12 @@ export class Selection {
         ) {
     }
 
-    value(ident: string): val.Value {
+    async value(ident: string): Promise<val.Value> {
         // TODO: not sure why i have to cast to any, then leafable
         const d: any = (this.meta as meta.Nodeable).definition(ident);
         const r = FieldRequest.reader(this, (d as meta.Leafable));
-        return this.valueHnd(r).val;
+        const v = await this.valueHnd(r)
+        return v.val;
     }
 
     get meta(): Definition {
@@ -348,19 +349,19 @@ export class Selection {
         return this.path.key;
     }
 
-    valueHnd(r: FieldRequest, useDefault: boolean = true): ValueHandle {
+    async valueHnd(r: FieldRequest, useDefault: boolean = true): Promise<ValueHandle> {
         // TODO: Check pre/post constraints
         const hnd = new ValueHandle();
-        this.node.field(r, hnd);
+        await this.node.field(r, hnd);
         if (hnd.val == null && useDefault && r.meta.hasDefault) {
             hnd.val = value(r.meta, r.meta.default);
         }
         return hnd;
     }
 
-    setValueHnd(r: FieldRequest, hnd: ValueHandle) {
+    async setValueHnd(r: FieldRequest, hnd: ValueHandle) {
         // TODO: Check pre/post constraints
-        this.node.field(r, hnd);
+        await this.node.field(r, hnd);
     }
 
     async select(r: ChildRequest): Promise<Selection | null> {

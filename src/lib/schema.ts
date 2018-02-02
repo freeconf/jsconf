@@ -7,7 +7,7 @@ import * as nodes from './nodes.js';
 console.log('schema.ts');
 
 export async function load(data: any): Promise<meta.Module> {
-    const m = new meta.Module('x');
+    const m = new meta.Module('');
     const b = new node.Browser(yangModule(), schemaNode(m));
     await b.Root().upsertFrom(nodes.reflect({obj: data}));
     return m;
@@ -206,7 +206,7 @@ function dataDefsNode(parent: meta.Nodeable, defs: meta.Definition[]): node.Node
 function createDefinition(parent: meta.Nodeable, metaType: string, ident: string): meta.Definition {
     switch (metaType) {
     case 'container':
-            return new meta.Container(parent, ident);
+        return new meta.Container(parent, ident);
     case 'leaf':
         return new meta.Leaf(parent, ident);
     case 'leaf-list':
@@ -434,6 +434,9 @@ function dataDef(parent: meta.Meta): meta.List {
         case 'list':
             d.dataDef.push(ddef); // recursive definition
             d.dataDef.push(...detailsDef(d));
+            const key = new meta.LeafList(d, 'key');
+            key.type = {format: val.Format.StrList} as meta.Type;
+            d.dataDef.push(key);
             d.dataDef.push(...listDetailsDefs(d));
             d.dataDef.push(...actionsAndNotifysDefs(d));
             break;

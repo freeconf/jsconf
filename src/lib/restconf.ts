@@ -4,7 +4,6 @@ import * as meta from './meta.js';
 import * as src from './src.js';
 import * as yang from './yang.js';
 import * as device from './device.js';
-import * as schema from './schema.js';
 
 console.log('restconf.ts');
 
@@ -14,19 +13,15 @@ export async function client(ypath: src.Source, url: string): Promise<device.Dev
     const client = new Client(addr);
     const loaderNode = new ClientNode(client, addr.deviceId);
     const loader = new node.Browser(m, loaderNode.node());
-    client.modules = device.loadModules(loader, resolver(ypath, url));
+    client.modules = await device.loadModules(loader, resolver(ypath, url));
     return client;
 }
 
-function resolver(_: src.Source, baseUrl: string): device.Resolver {
-    return async (hnd: device.ModuleHnd): Promise<meta.Module> => {
-        const data = await fetch(baseUrl + '/schema/' + hnd.name, {
-                method: 'GET',
-                headers: {
-                    'Accept-type' : 'application/json'
-                }
-            });
-        return schema.load(data.json());
+function resolver(local: src.Source, baseUrl: string): device.Resolver {
+    const remote = src.web(baseUrl + '/schema/');
+    const s = src.multi(local, remote);
+    return (hnd: device.ModuleHnd): Promise<meta.Module> => {
+        return yang.load(s, hnd.name);
     };
 }
 
@@ -104,6 +99,7 @@ class ClientNode  {
     private edit?: node.Node;
     private changes?: node.Node;
     private valid?: boolean;
+    private read?: node.Node;
 
     constructor(
         public readonly rest: RestClient,
@@ -147,27 +143,69 @@ class ClientNode  {
                 if (this.edit !== undefined) {
                     return this.edit.child(r);
                 }
-                return this.startReadMode(r.selection.path);
+                if (this.read === undefined) {
+                    this.read = await this.startReadMode(r.selection.path);
+                }
+                return this.read.child(r);
             },
+            onField: async (r: node.FieldRequest, hnd: node.ValueHandle) => {
+                if (r.target === null) {
+                    return;
+                } else if (this.edit !== undefined) {
+                    return this.edit.field(r, hnd);
+                }
+                if (this.read === undefined) {
+                    this.read = await this.startReadMode(r.selection.path);
+                }
+                return this.read.field(r, hnd);
+            },
+            onNext: async (r: node.ListRequest) => {
+                if (r.target !== undefined) {
+                    const valid = await this.validNavigation(r.target);
+                    if (valid) {
+                        return null;
+                    }
+                }
+                if (this.edit !== undefined) {
+                    return this.edit.next(r);
+                }
+                if (this.read === undefined) {
+                    this.read = await this.startReadMode(r.selection.path);
+                }
+                return this.read.next(r);                                
+            },
+            onDelete: async (r: node.NodeRequest) => {
+                await this.request('DELETE', r.selection.path);
+            },
+            onAction: async (r: node.ActionRequest) => {
+                return await this.request('POST', r.selection.path, r.input);
+            }
+            // onNotify: async (r: node.NotifyRequest) => {
+            //     return await this.request('POST', r.selection.path, r.input);
+            // },
         });
     }
 
-    startReadMode(p: node.Path): Promise<node.Node | null> {
-        return this.get(p, this.params);
+    async startReadMode(p: node.Path): Promise<node.Node> {
+        const read = await this.get(p, this.params);
+        if (read === null) {
+            throw new Error('could not read from otherwise valid node ' + p);
+        }
+        return read;
     }
 
     get(p: node.Path, params?: string): Promise<node.Node | null> {
         return this.rest.request('GET', p, params!, null);
     }
 
-    request(method: string, p: node.Path, input?: node.Selection): Promise<node.Node | null> {
+    async request(method: string, p: node.Path, input?: node.Selection): Promise<node.Node | null> {
         let payload: Buffer | null;
         if (input) {
-            payload = new Buffer(nodes.toJson(input), 'utf-8');
+            payload = new Buffer(await nodes.toJson(input), 'utf-8');
         } else {
             payload = null;
         }
-        return this.rest.request(method, p, '', payload);
+        return await this.rest.request(method, p, '', payload);
     }
 
     async startEditMode(p: node.Path): Promise<node.Node | null> {

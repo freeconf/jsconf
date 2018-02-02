@@ -84,7 +84,7 @@ export class Editor {
             while (i.hasNext()) {
                 const d = i.next();
                 if (meta.isLeaf(d)) {
-                    this.leaf(from, to, d as meta.Leafable, create, strategy);
+                    await this.leaf(from, to, d as meta.Leafable, create, strategy);
                 } else {
                     await this.node(from, to, d as meta.Nodeable, create, strategy);
                 }
@@ -135,7 +135,7 @@ export class Editor {
             if (toChild == null) {
                 throw new Error(`'${wTo.path}' could not create '${meta.ident}' container node.`);
             }
-            await this.enter(fromChild, toChild, newChild, s, false, false);
+            await this.enter(fromChild, toChild, newChild, strategy.upsert, false, false);
 
             rFrom = await rFrom.next();
             fromChild = await from.selectListItem(rFrom);
@@ -181,13 +181,13 @@ export class Editor {
         await this.enter(fromChild, toChild, newChild, s, false, false);
     }
 
-    leaf(from: node.Selection, to: node.Selection, meta: meta.Leafable, create: boolean, s: strategy) {
+    async leaf(from: node.Selection, to: node.Selection, meta: meta.Leafable, create: boolean, s: strategy) {
         const rFrom = node.FieldRequest.reader(from, meta);
         const useDefault = (s !== strategy.update && create) || this.useDefault;
-        const hnd = from.valueHnd(rFrom, useDefault);
-        if (hnd.val != null) {
+        const hnd = await from.valueHnd(rFrom, useDefault);
+        if (hnd.val !== undefined && hnd.val.val !== undefined) {
             const rTo = node.FieldRequest.writer(to, meta, from, this.basePath);
-            to.setValueHnd(rTo, hnd);
+            await to.setValueHnd(rTo, hnd);
         }
     }
 }

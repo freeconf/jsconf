@@ -22,7 +22,7 @@ suite('schema', () => {
     test('load', async () => {
         const m = await schema.load({
             module: {
-                ident: 'x',
+                ident: 'm',
                 dataDef: [
                     {
                         ident: 'l',
@@ -51,7 +51,7 @@ suite('schema', () => {
                 ]
             }
         });
-        assert.equal('x', m.ident);
+        assert.equal('m', m.ident);
         assert.equal(2, m.dataDef.length);
         const l = (m.dataDef[0] as meta.Leaf);
         assert.equal('l', l.ident);

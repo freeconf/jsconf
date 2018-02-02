@@ -1,0 +1,161 @@
+{
+"module":{
+  "ident":"ietf-yang-library",
+  "description":"This module contains monitoring information about the YANG\n        modules and submodules that are used within a YANG-based\n        server.\n\n        Copyright (c) 2016 IETF Trust and the persons identified as\n        authors of the code.  All rights reserved.\n\n        Redistribution and use in source and binary forms, with or\n        without modification, is permitted pursuant to, and subject\n        to the license terms contained in, the Simplified BSD License\n        set forth in Section 4.c of the IETF Trust's Legal Provisions\n        Relating to IETF Documents\n        (http://trustee.ietf.org/license-info).\n\n        This version of this YANG module is part of RFC 7895; see\n        the RFC itself for full legal notices.\n        \n        NOTE: This file has been modified to be compatible with freeconf's \n        YANG parser. Intention is to replace this file with the original \n        version once the freeconf parser is in compliance.",
+  "namespace":"urn:ietf:params:xml:ns:yang:ietf-yang-library",
+  "prefix":"yanglib",
+  "revision":{
+    "rev-date":"2016-06-21",
+    "description":"Initial revision."},
+  "notify":[
+    {
+      "ident":"yang-library-change",
+      "description":"Generated when the set of modules and submodules supported\n          by the server has changed.",
+      "dataDef":[
+        {
+          "ident":"module-set-id",
+          "description":"Contains the module-set-id value representing the\n            set of modules and submodules supported at the server at\n            the time the notification is generated.",
+          "leaf":{
+            "mandatory":true,
+            "type":{
+              "ident":"leafref",
+              "path":"/modules-state/module-set-id",
+              "format":"leafRef"}}}]}],
+  "dataDef":[
+    {
+      "ident":"modules-state",
+      "description":"The module data structure is represented as a grouping\n          so it can be reused in configuration or another monitoring\n          data structure.",
+      "container":{
+        "config":false,
+        "dataDef":[
+          {
+            "ident":"module-set-id",
+            "description":"Contains a server-specific identifier representing\n            the current set of modules and submodules.  The\n            server MUST change the value of this leaf if the\n            information represented by the 'module' list instances\n            has changed.",
+            "leaf":{
+              "config":false,
+              "mandatory":true,
+              "type":{
+                "ident":"string",
+                "format":"string"}}},
+          {
+            "ident":"module",
+            "description":"Each entry represents one revision of one module\n            currently supported by the server.",
+            "list":{
+              "key":["name"],
+              "config":false,
+              "unbounded":true,
+              "dataDef":[
+                {
+                  "ident":"name",
+                  "description":"The YANG module or submodule name.",
+                  "leaf":{
+                    "config":false,
+                    "type":{
+                      "ident":"string",
+                      "format":"string"}}},
+                {
+                  "ident":"revision",
+                  "description":"The YANG module or submodule revision date.\n              A zero-length string is used if no revision statement\n              is present in the YANG module or submodule.",
+                  "leaf":{
+                    "config":false,
+                    "type":{
+                      "ident":"string",
+                      "format":"string"}}},
+                {
+                  "ident":"schema",
+                  "description":"Contains a URL that represents the YANG schema\n            resource for this module or submodule.\n\n            This leaf will only be present if there is a URL\n            available for retrieval of the schema for this entry.",
+                  "leaf":{
+                    "config":false,
+                    "type":{
+                      "ident":"string",
+                      "format":"string"}}},
+                {
+                  "ident":"namespace",
+                  "description":"The XML namespace identifier for this module.",
+                  "leaf":{
+                    "config":false,
+                    "mandatory":true,
+                    "type":{
+                      "ident":"string",
+                      "format":"string"}}},
+                {
+                  "ident":"feature",
+                  "description":"List of YANG feature names from this module that are\n              supported by the server, regardless of whether they are\n              defined in the module or any included submodule.",
+                  "leaf-list":{
+                    "config":false,
+                    "unbounded":true,
+                    "type":{
+                      "ident":"string",
+                      "format":"stringList"}}},
+                {
+                  "ident":"deviation",
+                  "description":"List of YANG deviation module names and revisions\n              used by this server to modify the conformance of\n              the module associated with this entry.  Note that\n              the same module can be used for deviations for\n              multiple modules, so the same entry MAY appear\n              within multiple 'module' entries.\n\n              The deviation module MUST be present in the 'module'\n              list, with the same name and revision values.\n              The 'conformance-type' value will be 'implement' for\n              the deviation module.",
+                  "list":{
+                    "key":["name","revision"],
+                    "config":false,
+                    "unbounded":true,
+                    "dataDef":[
+                      {
+                        "ident":"name",
+                        "description":"The YANG module or submodule name.",
+                        "leaf":{
+                          "config":false,
+                          "type":{
+                            "ident":"string",
+                            "format":"string"}}},
+                      {
+                        "ident":"revision",
+                        "description":"The YANG module or submodule revision date.\n              A zero-length string is used if no revision statement\n              is present in the YANG module or submodule.",
+                        "leaf":{
+                          "config":false,
+                          "type":{
+                            "ident":"string",
+                            "format":"string"}}}]}},
+                {
+                  "ident":"conformance-type",
+                  "description":"Indicates the type of conformance the server is claiming\n              for the YANG module identified by this entry.",
+                  "leaf":{
+                    "config":false,
+                    "mandatory":true,
+                    "type":{
+                      "ident":"enumeration",
+                      "enumeration":[
+                        {
+                          "label":"implement",
+                          "id":0},
+                        {
+                          "label":"import",
+                          "id":1}],
+                      "format":"enum"}}},
+                {
+                  "ident":"submodule",
+                  "description":"Each entry represents one submodule within the\n              parent module.",
+                  "list":{
+                    "key":["name","revision"],
+                    "config":false,
+                    "unbounded":true,
+                    "dataDef":[
+                      {
+                        "ident":"name",
+                        "description":"The YANG module or submodule name.",
+                        "leaf":{
+                          "config":false,
+                          "type":{
+                            "ident":"string",
+                            "format":"string"}}},
+                      {
+                        "ident":"revision",
+                        "description":"The YANG module or submodule revision date.\n              A zero-length string is used if no revision statement\n              is present in the YANG module or submodule.",
+                        "leaf":{
+                          "config":false,
+                          "type":{
+                            "ident":"string",
+                            "format":"string"}}},
+                      {
+                        "ident":"schema",
+                        "description":"Contains a URL that represents the YANG schema\n            resource for this module or submodule.\n\n            This leaf will only be present if there is a URL\n            available for retrieval of the schema for this entry.",
+                        "leaf":{
+                          "config":false,
+                          "type":{
+                            "ident":"string",
+                            "format":"string"}}}]}}]}}]}}]}}

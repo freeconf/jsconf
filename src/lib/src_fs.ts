@@ -1,28 +1,34 @@
 import * as fs from 'fs';
-import * as child from 'child_process';
 import * as src from './src.js';
 
 console.log('src_fs.ts');
 
-export function exe(exe: string, ypath: string): src.Source {
-    return {
-        load : (name: string, _: string): Buffer => {
-            const cmd = `${exe} -ypath ${ypath} -module ${name}`;
-            return child.execFileSync(cmd);
-        }
-    };
+
+function toBlob(input: string|Buffer): Blob {
+    if (typeof input === "string") {
+        return new Blob([input]);
+    }
+    return new Blob([input.buffer]);
 }
 
 export function dir(root: string): src.Source {
     return {
-        load: (name: string, ext: string): Buffer => {
+        load: async (name: string, ext: string): Promise<Blob> => {
             let filePath: string;
             if (ext === 'yang') {
                 filePath = `${root}/${name}.json`;
             } else {
                 filePath = `${root}/${name}.${ext}`;
             }
-            return fs.readFileSync(filePath);
+            return new Promise<Blob>((resolve, reject) => {
+                fs.readFile(filePath, 'utf-8', (err, data: string | Buffer) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(toBlob(data));
+                    }                    
+                });
+            });
         }
     };
 }
