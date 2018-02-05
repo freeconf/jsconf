@@ -157,7 +157,7 @@ export class Editor {
         switch (s) {
         case strategy.insert:
             if (toChild != null) {
-                throw new Error(`Duplicate item '${meta.ident}' found in '${rFrom.path}'`);
+                throw new Error(`duplicate item '${meta.ident}' found in '${rFrom.path}'`);
             }
             toChild = await to.select(wTo);
             newChild = true;

@@ -10,20 +10,20 @@ import * as node from '../lib/node.js';
 suite('reflect', () => {
     test('write', async () => {
         const mod = await schema.load({
-            "module": {
-                "ident": "m",
-                "dataDef": [
+            module: {
+                ident: "m",
+                dataDef: [
                     {
-                        "ident": "l",
-                        "list": {
-                            "key": ["id"],
-                            "dataDef": [
+                        ident: "l",
+                        list: {
+                            key: ["id"],
+                            dataDef: [
                                 {
-                                    "ident": "id",
-                                    "leaf": {
-                                        "type": {
-                                            "ident": "string",
-                                            "format": "string"
+                                    ident: "id",
+                                    leaf: {
+                                        type: {
+                                            ident: "string",
+                                            format: "string"
                                         }
                                     }
                                 }]
@@ -31,11 +31,11 @@ suite('reflect', () => {
                     }]
             }
         });
-        const n = reflect.node({obj: {
+        const n = reflect.node({
             l : [{
                 id : "x"
             }]
-        }});
+        });
         const b = new node.Browser(mod, n);
         const actual = await nodes.toJson(b.Root());
         assert.equal('{"l":[{"id":"x"}]}', actual);''

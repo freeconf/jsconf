@@ -99,9 +99,9 @@ suite('schema', () => {
                 l2 : 32
             }
         };
-        const b = new node.Browser(m, reflect.node({obj: data}));
+        const b = new node.Browser(m, reflect.node(data));
         const copy = {};
-        b.Root().insertInto(reflect.node({obj: copy}));
+        b.Root().insertInto(reflect.node(copy));
         console.log(JSON.stringify(copy));
     });
 });

@@ -78,7 +78,7 @@ class Client implements device.Device, RestClient {
         return new node.Browser(m, n);
     }
 
-    async request(method: string, p: node.Path, params: string, payload: Buffer | null): Promise<node.Node | null> {
+    async request(method: string, p: node.Path, params: string, payload: any): Promise<node.Node | null> {
         const mod = meta.root(p.meta);
         const paramsStr = (params ? '?' + params : '');
         const data = await fetch(`${this.addr.data}${mod.ident}:${p.toStringNoModule()}?${paramsStr}`, {
@@ -89,20 +89,20 @@ class Client implements device.Device, RestClient {
             },
             body: payload
         });
-        return reflect.node(await data.json());
+        return await reflect.node(await data.json());
     }
 }
 
-interface RestClient {
-    request(method: string, p: node.Path, params: string, payload: Buffer | null): Promise<node.Node | null>;
+export interface RestClient {
+    request(method: string, p: node.Path, params: string, payload: any): Promise<node.Node | null>;
 }
 
-class ClientNode  {
+export class ClientNode  {
     private method: string;
-    private edit?: node.Node;
+    private edit?: Promise<node.Node | null>;
     private changes?: node.Node;
     private valid?: boolean;
-    private read?: node.Node;
+    private read?: Promise<node.Node | null>;
 
     constructor(
         public readonly rest: RestClient,
@@ -113,7 +113,7 @@ class ClientNode  {
 
     node(): node.Node {
         return basic.node({
-            onBeginEdit: async (r: node.NodeRequest) => {
+            onBeginEdit: (r: node.NodeRequest) => {
                 if (!r.editRoot) {
                     return;
                 }
@@ -122,19 +122,16 @@ class ClientNode  {
                 } else {
                     this.method = 'PUT';
                 }
-                const edit = await this.startEditMode(r.selection.path);
-                if (edit) {
-                    this.edit = edit;
-                }
+                this.edit = this.startEditMode(r.selection.path);
             },
-            onEndEdit: async (r: node.NodeRequest)  => {
+            onEndEdit: (r: node.NodeRequest)  => {
                 if (!r.editRoot) {
                     return;
                 }
                 if (this.changes === undefined) {
                     throw new Error('no changes captured');
                 }
-                await this.request(this.method, r.selection.path, r.selection.split(this.changes));
+                return this.request(this.method, r.selection.path, r.selection.split(this.changes));
             },
             onChild: async (r: node.ChildRequest) => {
                 if (r.target !== undefined) {
@@ -144,23 +141,40 @@ class ClientNode  {
                     }
                 }
                 if (this.edit !== undefined) {
-                    return this.edit.child(r);
+                    const n = await this.edit;
+                    if (n != null) {
+                        return await n.child(r);
+                    } else {
+                        return null;
+                    }
                 }
                 if (this.read === undefined) {
-                    this.read = await this.startReadMode(r.selection.path);
+                    this.read = this.startReadMode(r.selection.path);
                 }
-                return this.read.child(r);
+                const n = await this.read;
+                if (n != null) {
+                    return await n.child(r);
+                }
+                return null;
             },
             onField: async (r: node.FieldRequest, hnd: node.ValueHandle) => {
                 if (r.target === null) {
                     return;
                 } else if (this.edit !== undefined) {
-                    return this.edit.field(r, hnd);
+                    const n = await this.edit;
+                    if (n != null) {
+                        return await n.field(r, hnd);
+                    } else {
+                        return null;
+                    }
                 }
                 if (this.read === undefined) {
-                    this.read = await this.startReadMode(r.selection.path);
+                    this.read = this.startReadMode(r.selection.path);
                 }
-                return this.read.field(r, hnd);
+                const n = await this.read;
+                if (n != null) {
+                    await n.field(r, hnd);
+                }
             },
             onNext: async (r: node.ListRequest) => {
                 if (r.target !== undefined) {
@@ -170,18 +184,27 @@ class ClientNode  {
                     }
                 }
                 if (this.edit !== undefined) {
-                    return this.edit.next(r);
+                    const n = await this.edit;
+                    if (n != null) {
+                        return await n.next(r);
+                    } else {
+                        return null;
+                    }
                 }
                 if (this.read === undefined) {
-                    this.read = await this.startReadMode(r.selection.path);
+                    this.read = this.startReadMode(r.selection.path);
                 }
-                return this.read.next(r);                                
+                const n = await this.read;
+                if (n != null) {
+                    return await n.next(r);
+                }
+                return null;
             },
-            onDelete: async (r: node.NodeRequest) => {
-                await this.request('DELETE', r.selection.path);
+            onDelete: (r: node.NodeRequest) => {
+                return this.request('DELETE', r.selection.path);
             },
-            onAction: async (r: node.ActionRequest) => {
-                return await this.request('POST', r.selection.path, r.input);
+            onAction: (r: node.ActionRequest) => {
+                return this.request('POST', r.selection.path, r.input);
             }
             // onNotify: async (r: node.NotifyRequest) => {
             //     return await this.request('POST', r.selection.path, r.input);
@@ -202,9 +225,9 @@ class ClientNode  {
     }
 
     async request(method: string, p: node.Path, input?: node.Selection): Promise<node.Node | null> {
-        let payload: Buffer | null;
+        let payload: any;
         if (input) {
-            payload = new Buffer(await nodes.toJson(input), 'utf-8');
+            payload = await nodes.toJson(input);
         } else {
             payload = null;
         }
@@ -213,7 +236,7 @@ class ClientNode  {
 
     async startEditMode(p: node.Path): Promise<node.Node | null> {
         const existing = await this.get(p, 'depth=1&content=config&with-defaults=trim');
-        this.changes = reflect.node({obj: {}});
+        this.changes = reflect.node({});
         const edit = extend.node({
             base: this.changes,
             onChild: (base: node.Node, r: node.ChildRequest): node.ChildResponse => {

@@ -6,22 +6,6 @@ export interface Source {
     load(name: string, ext: string): Promise<Blob>;
 }
 
-// export async function json(r: Blob): Promise<any> {
-//     if (typeof r === "string") {
-//         return JSON.parse(r);
-//     }
-//     if (r instanceof Buffer) {
-//         return JSON.parse(r.toString());
-//     }
-//     let data = r;
-//     if (typeof data === "string") {
-//         return JSON.parse(r.);
-//     }
-//     return data;
-// }
-
-//export type Resource = Promise<any> | Promise<string> | string | Blob;
-
 export function webDir(url: string): Source {
     return {
         load: async (name: string, _: string): Promise<Blob> => {

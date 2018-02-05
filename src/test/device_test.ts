@@ -9,7 +9,7 @@ import * as nodes from '../lib/nodes.js';
 suite('device', () => {
     test('bird', async () => {
         const ypath = src.webDir("/test/yang/");
-        const d = await bird.create(ypath);
+        const d = bird.device(await bird.browser(ypath));
         const actual = await nodes.toJson(d.browser("bird").Root());
         const expected = '{"bird":[{"name":"bluejay","wingspan":10,"species":{"name":"jay"}}]}';
         assert.equal(expected, actual);''

@@ -1,5 +1,5 @@
 
-import * as device from './device.js';
+import * as d from './device.js';
 import * as node from './node.js';
 import * as reflect from './nodes/reflect.js';
 import * as meta from './meta.js';
@@ -8,23 +8,29 @@ import * as yang from './yang.js';
 
 console.log("bird.ts");
 
-export async function create(ypath: src.Source): Promise<device.Device> {
+export async function browser(ypath: src.Source, data?: any): Promise<node.Browser> {
+    if (data === undefined) {
+        data = {
+            bird : [{
+                name : "bluejay",
+                wingspan: 10,
+                species : {
+                    name : "jay"
+                }
+            }]
+        };
+    }
     const m = await yang.load(ypath, "bird");
+    return new node.Browser(m, reflect.node(data));
+}
+
+export function device(b: node.Browser): d.Device {
     const mods = new Map<string, meta.Module>();
-    const n = reflect.node({obj: {
-        bird : [{
-            name : "bluejay",
-            wingspan: 10,
-            species : {
-                name : "jay"
-            }
-        }]
-    }});
-    mods.set(m.ident, m);
+    mods.set(b.meta.ident, b.meta);
     return {
         modules: mods,
         browser: (_: string) => {
-            return new node.Browser(m, n);
+            return b;
         }
     };
 }

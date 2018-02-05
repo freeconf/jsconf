@@ -1,5 +1,6 @@
 import * as meta from '../meta.js';
 import * as n from '../node.js';
+import * as nodes from '../nodes.js';
 import * as basic from './basic.js';
 
 console.log('reflect.ts');
@@ -10,11 +11,11 @@ export class Reflect {
     onCreateListItem?: (s: n.Selection, m: meta.Meta, self: Reflect) => any;
 }
 
-export function node(self: Reflect): n.Node {
-    return child(self);
+export function node(x: any): n.Node {
+    return custom({obj: x});
 }
 
-export function reflectList(self: Reflect): n.Node {
+export function list(self: Reflect): n.Node {
     if (self.obj instanceof Map) {
         return listMap(self, self.obj as Map<any, any>);
     } else if (self.obj instanceof Array) {
@@ -23,7 +24,7 @@ export function reflectList(self: Reflect): n.Node {
     throw new Error('unsupported list type ' + self.obj);
 }
 
-function child(self: Reflect): n.Node {
+export function custom(self: Reflect): n.Node {
     return basic.node({
         peekable: self.obj,
         onChoose: function(sel: n.Selection, choice: meta.Choice) {
@@ -48,9 +49,9 @@ function child(self: Reflect): n.Node {
                 return null;
             }
             if (r.meta instanceof meta.List) {
-                return reflectList({...self, obj: val});
+                return list({...self, obj: val});
             }
-            return node({...self, obj: val});
+            return custom({...self, obj: val});
         },
         onField: function(r: n.FieldRequest, hnd: n.ValueHandle) {
             if (r.write) {
@@ -89,7 +90,7 @@ function reflectProp(item: any, ident: string): any {
 }
 
 function listMap(self: Reflect, x: Map<any, any>): n.Node {
-    const i = index(x);
+    const i = nodes.index(x);
     return basic.node({
         peekable: x,
         onNext: function(r: n.ListRequest): n.ListResponse {
@@ -113,10 +114,7 @@ function listMap(self: Reflect, x: Map<any, any>): n.Node {
                 }
             }
             if (item !== undefined) {
-                const n = node({...self, obj: item});
-                // if (n === undefined || key === undefined) {
-                //     throw new Error('illegal state');
-                // }
+                const n = custom({...self, obj: item});
                 return [n, key];
             }
             return null;
@@ -146,7 +144,7 @@ function listArray(self: Reflect, x: any[]): n.Node {
                 key = n.values(r.meta.keyMeta, keyVal);
             }
             if (item !== undefined) {
-                const n = node({...self, obj: item});
+                const n = custom({...self, obj: item});
                 if (n === undefined) {
                     throw new Error('illegal state');
                 }
@@ -155,13 +153,4 @@ function listArray(self: Reflect, x: any[]): n.Node {
             return null;
         }
     });
-}
-
-export function index<K, V>(m: Map<K, V>): K[] {
-    const keys: K[] = new Array(m.size);
-    let i = 0;
-    for (const k of m.keys()) {
-        keys[i++] = k;
-    }
-    return keys;
 }

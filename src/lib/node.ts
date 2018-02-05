@@ -447,7 +447,7 @@ export class Selection {
         );
     }
 
-    beginEdit(nr: NodeRequest, bubble: boolean) {
+    async beginEdit(nr: NodeRequest, bubble: boolean) {
         const r = {
             selection: this as Selection, // not sure why cast is nec.
             create: nr.create,
@@ -455,7 +455,7 @@ export class Selection {
             editRoot: true
         };
         while (true) {
-            r.selection.node.beginEdit(r as NodeRequest);
+            await r.selection.node.beginEdit(r as NodeRequest);
 
             if (r.selection.parent == null || !bubble) {
                 break;
@@ -466,7 +466,7 @@ export class Selection {
         }
     }
 
-    endEdit(nr: NodeRequest, bubble: boolean) {
+    async endEdit(nr: NodeRequest, bubble: boolean) {
         const r = {
             selection: this as Selection,
             create: nr.create,
@@ -474,7 +474,7 @@ export class Selection {
             editRoot: true
         };
         while (true) {
-            this.node.endEdit(r as NodeRequest);
+            await this.node.endEdit(r as NodeRequest);
 
             if (r.selection.parent == null || !bubble) {
                 break;

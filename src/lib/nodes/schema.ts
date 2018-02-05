@@ -3,6 +3,7 @@ import * as node from '../node.js';
 import * as basic from './basic.js';
 import * as extend from './extend.js';
 import * as reflect from './reflect.js';
+import * as nodes from '../nodes.js';
 import * as meta from '../meta.js';
 import * as val from '../val.js';
 
@@ -11,7 +12,7 @@ console.log('schema.ts');
 export async function load(data: any): Promise<meta.Module> {
     const m = new meta.Module('');
     const b = new node.Browser(yangModule(), schemaNode(m));
-    await b.Root().upsertFrom(reflect.node({obj: data}));
+    await b.Root().upsertFrom(reflect.node(data));
     return m;
 }
 
@@ -30,7 +31,7 @@ export function schemaNode(m: meta.Module): node.Node {
 
 function metaNode(m: meta.Meta): node.Node {
     // ident, description, reference
-    return reflect.node({obj: m});
+    return reflect.node(m);
 }
 
 function definitionNode(m: meta.Definition): node.Node {
@@ -113,7 +114,7 @@ function nodeableNode(l: meta.Nodeable): node.Node {
 
 function typeNode(t: meta.Type): node.Node {
     return extend.node({
-        base: reflect.node({obj: t}),
+        base: reflect.node(t),
         onField: function(p: node.Node, r: node.FieldRequest, hnd: node.ValueHandle) {
             switch (r.meta.ident) {
             case 'format':
@@ -224,7 +225,7 @@ function createDefinition(parent: meta.Nodeable, metaType: string, ident: string
 }
 
 function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): node.Node {
-    const keys = reflect.index(actions);
+    const keys = nodes.index(actions);
     return basic.node({
         peekable: actions,
         onNext: function(r: node.ListRequest) {
@@ -254,7 +255,7 @@ function actionsNode(parent: meta.Nodeable, actions: Map<string, meta.Action>): 
 }
 
 function notifysNode(parent: meta.Nodeable, notifys: Map<string, meta.Notification>): node.Node {
-    const keys = reflect.index(notifys);
+    const keys = nodes.index(notifys);
     return basic.node({
         peekable: notifys,
         onNext: function(r: node.ListRequest) {
@@ -293,7 +294,7 @@ function moduleNode(m: meta.Module): node.Node {
                     m.revision = {};
                 }
                 if (m.revision != null) {
-                    return reflect.node({obj: m.revision});
+                    return reflect.node(m.revision);
                 }
                 break;
             default:
