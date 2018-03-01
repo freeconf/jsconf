@@ -6,33 +6,37 @@ import { Definition, Nodeable } from './meta.js';
 console.log('node.ts');
 
 export class FieldRequest {
-    readonly path: Path;
-    readonly selection: Selection;
-    readonly meta: meta.Leafable;
-    readonly target?: Path;
-    readonly from?: Selection;
-    readonly base?: Path;
-    readonly write: boolean = false;
-    readonly del: boolean = false;
+    
+    constructor(
+        public readonly selection: Selection,
+        public readonly meta: meta.Leafable,
+        public readonly path: Path,
+        public readonly target?: Path,
+        public readonly from?: Selection,
+        public readonly base?: Path,
+        public readonly write: boolean = false,
+        public readonly del: boolean = false
+    ) {
+    }    
 
     static reader(s: Selection, meta: meta.Leafable, target?: Path): FieldRequest {
-        return {
-            selection: s,
-            meta: meta,
-            target: target,
-            path : new Path(meta, s.path),
-        } as FieldRequest;
+        return new FieldRequest(
+            s, 
+            meta, 
+            new Path(meta, s.path),
+            target
+        );
     }
 
     static writer(s: Selection, meta: meta.Leafable, from: Selection, base: Path): FieldRequest {
-        return {
-            selection: s,
-            meta: meta,
-            path : new Path(meta, s.path),
-            from: from,
-            base: base,
-            write: true
-        } as FieldRequest;
+        return new FieldRequest(
+            s,
+            meta,
+            new Path(meta, s.path),
+            undefined,
+            from,
+            base,
+            true);
     }
 }
 
@@ -145,16 +149,20 @@ export class ListRequest {
 }
 
 export class NodeRequest {
-    readonly selection: Selection;
-    readonly create: boolean;
-    readonly source: Selection;
-    readonly editRoot: boolean = false;
+    constructor(
+        readonly selection: Selection,
+        readonly create: boolean,
+        readonly source: Selection,    
+        readonly editRoot: boolean = false
+    ){}
 }
 
 export class  ActionRequest {
-    readonly selection: Selection;
-    readonly meta: meta.Action;
-    readonly input?: Selection;
+    constructor(
+        readonly selection: Selection,
+        readonly meta: meta.Action,
+        readonly input?: Selection        
+    ){}
 
     static create(parent: Selection, meta: meta.Action, input?: Node): ActionRequest {
         if (input !== undefined) {
@@ -182,9 +190,11 @@ export interface NotifyStream {
 }
 
 export class NotifyRequest {
-    readonly selection: Selection;
-    readonly meta: meta.Notification;
-    readonly stream: NotifyStream;
+    constructor(
+        readonly selection: Selection,
+        readonly meta: meta.Notification,
+        readonly stream: NotifyStream        
+    ) {}
 }
 
 export interface NotifyCloser {
@@ -192,7 +202,7 @@ export interface NotifyCloser {
 }
 
 export class ValueHandle {
-    val: val.Value;
+    val?: val.Value;    
 }
 
 export function parse(s: string, mod: meta.Module): Path[] {
@@ -209,10 +219,12 @@ export function parse(s: string, mod: meta.Module): Path[] {
         const eq = segs[i].indexOf('=');
         let ident: string;
         let keys: (val.Value[]|undefined);
-        if (eq >= 0) {
+        if (eq >= 0 && def instanceof meta.List) {
             ident = segs[i].substr(0, eq);
             const keyStrs = segs[i].substr(eq + 1).split(',');
-            keys = values((def as meta.List).keyMeta, ...keyStrs);
+            if (def.keyMeta !== undefined) {
+                keys = values(def.keyMeta, ...keyStrs);
+            }
         } else {
             ident = segs[i];
         }
@@ -291,9 +303,9 @@ export function values(metas: meta.Leafable[], ...x: any[]): val.Value[] {
 export function value(m: meta.Leafable, x: any): val.Value {
     switch (m.type.format) {
     case val.Format.Enum:
-        return val.enm(toEnum(m.type.enum, x));
+        return val.enm(toEnum(meta.Type.requireEnum(m.type), x));
     case val.Format.EnumList:
-        return val.enums(toEnumList(m.type.enum, x));
+        return val.enums(toEnumList(meta.Type.requireEnum(m.type), x));
     case val.Format.Union:
         throw new Error('TODO');
     }
@@ -333,7 +345,7 @@ export class Selection {
         ) {
     }
 
-    async value(ident: string): Promise<val.Value> {
+    async value(ident: string): Promise<val.Value | undefined> {
         // TODO: not sure why i have to cast to any, then leafable
         const d: any = (this.meta as meta.Nodeable).definition(ident);
         const r = FieldRequest.reader(this, (d as meta.Leafable));
@@ -387,7 +399,7 @@ export class Selection {
         }
         const [child, key] = resp;
         let path: Path;
-        if (r.meta.keyMeta.length > 0) {
+        if (r.meta.keyMeta !== undefined) {
             if (key === undefined) {
                 throw new Error('no key returned for ' + r.path.toString());
             }
@@ -497,7 +509,7 @@ export class Selection {
         // TODO: check constraints
         const r = ActionRequest.create(this, this.meta as meta.Action, input);
         const output = await this.node.action(r);
-        if (output != null) {
+        if (output != null && r.meta.output != undefined) {
             return new Selection(
                 this.browser,
                 output,

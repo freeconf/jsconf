@@ -19,31 +19,19 @@ suite('restconf', () => {
 
     test('clientNode', async () =>  {
         const ypath = src.webDir('/test/yang/');
-        let actual:string[] = [];
-        let response = {};
-        const rest: rc.RestClient = {
-            request: async (method: string, p: node.Path, params: string, payload: Buffer | null) => {
-                actual.push(`${method} - ${p}?${params} ${payload}`);
-                return await reflect.node(response);
-            }
-        };
-        const cn = new rc.ClientNode(rest, 'id');
-        const b = await bird.browser(ypath);
-
-        test('read', async () => {
-            await b.Root().upsertInto(cn.node());
-            const expected  = [
-                'GET - bird?depth=1&content=config&with-defaults=trim null',
-                'PUT - bird? {"bird":[{"name":"bluejay","wingspan":10,"species":{"name":"jay"}}]}'
-            ]
-            for (let i = 0; i < expected.length; i++) {
-                assert.equal(expected[i], actual[i]);
-            }
-            assert.equal('{}', JSON.stringify(response));    
-        });
-
+        
         test('write', async () => {
-            await b.Root().upsertInto(cn.node());
+            let actual:string[] = [];
+            let response = {};
+            const rest: rc.RestClient = {
+                request: async (method: string, p: node.Path, params: string, payload: Buffer | null) => {
+                    actual.push(`${method} - ${p}?${params} ${payload}`);
+                    return await reflect.node(response);
+                }
+            };
+            const cn = new rc.ClientNode(rest, 'id');
+            const b = await bird.browser(ypath);
+                await b.Root().upsertInto(cn.node());
             const expected  = [
                 'GET - bird?depth=1&content=config&with-defaults=trim null',
                 'PUT - bird? {"bird":[{"name":"bluejay","wingspan":10,"species":{"name":"jay"}}]}'

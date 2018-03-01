@@ -13,10 +13,10 @@ export interface Device {
 }
 
 export class ModuleHnd {
-    name: string;
-    schema: string;
-    revision: string;
-    namespace: string;
+    schema?: string;
+    revision?: string;
+    namespace?: string;
+    constructor(public readonly name: string) {}
 }
 
 export type Resolver = (hnd: ModuleHnd) => Promise<meta.Module>;
@@ -37,7 +37,7 @@ function loadModulesListNode(mods:  Map<string, meta.Module>, resolver: Resolver
         onNext: (r: node.ListRequest) => {
             const key = r.key;
             if (r.create && key !== undefined) {
-                const hnd = {name: key[0].toString()} as ModuleHnd;
+                const hnd = new ModuleHnd(key[0].toString());
                 return [loadModuleNode(mods, resolver, hnd), key];
             }
             return null;

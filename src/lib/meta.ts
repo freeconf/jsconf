@@ -4,13 +4,13 @@ import * as val from './val.js';
 console.log('meta.ts');
 
 export interface Meta {
-    parent: Meta;
+    parent?: Meta;
 }
 
 export interface Definition extends Meta {
     ident: string;
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
 }
 
 export interface Nodeable extends Definition {
@@ -22,7 +22,7 @@ export interface Nodeable extends Definition {
 export interface Leafable extends Definition {
     type: Type;
     hasDefault: boolean;
-    default: string;
+    default?: string;
 }
 
 export function isLeaf(d: Definition): boolean {
@@ -38,14 +38,14 @@ export interface HasNotifications extends Nodeable {
 }
 
 export class Module implements Definition, Nodeable, HasActions, HasNotifications {
-    parent: Meta;
+    parent?: Meta;
     revision: any;
     readonly dataDef: Definition[];
     readonly actions: Map<string, Action>;
     readonly notifys: Map<string, Notification>;
-    description: string;
-    reference: string;
-    namespace: string;
+    description?: string;
+    reference?: string;
+    namespace?: string;
     private defs: Defs;
 
     constructor(public ident: string) {
@@ -65,10 +65,10 @@ export class Module implements Definition, Nodeable, HasActions, HasNotification
 }
 
 export class Leaf implements Leafable {
-    description: string;
-    type: Type;
-    reference: string;
-    default: string;
+    description?: string;
+    type: Type = {} as Type;
+    reference?: string;
+    default?: string;
 
     constructor(public parent: Meta, public ident: string) {
     }
@@ -79,9 +79,9 @@ export class Leaf implements Leafable {
 }
 
 export class Any implements Leafable {
-    description: string;
-    type: Type;
-    reference: string;
+    description?: string;
+    type: Type = {} as Type;
+    reference?: string;
 
     constructor(public parent: Meta, public ident: string) {
     }
@@ -96,10 +96,10 @@ export class Any implements Leafable {
 }
 
 export class LeafList implements Leafable {
-    description: string;
-    type: Type;
-    reference: string;
-    default: string;
+    description?: string;
+    type: Type = {} as Type;
+    reference?: string;
+    default?: string;
 
     constructor(public parent: Meta, public ident: string) {
     }
@@ -110,15 +110,25 @@ export class LeafList implements Leafable {
 }
 
 export class Type {
-    ident: string;
-    path: string;
-    format: val.Format;
-    enum: val.EnumList;
+    enum?: val.EnumList;
+    constructor(public ident: string, public path: string, public format: val.Format) {
+    }
+
+    static requireEnum(self: Type): val.EnumList {
+        if (self.format === val.Format.Enum || self.format === val.Format.EnumList) {
+            if (self.enum) {
+                return self.enum;
+            } else {
+                throw new Error(self.ident + " has not enumerations defined");
+            }
+        }
+        throw new Error(self.ident + " is not an enumeration");        
+    }
 }
 
 export class Container implements Definition, Nodeable, HasActions, HasNotifications {
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
     readonly dataDef: Definition[];
     readonly actions: Map<string, Action>;
     readonly notifys: Map<string, Notification>;
@@ -141,16 +151,16 @@ export class Container implements Definition, Nodeable, HasActions, HasNotificat
 }
 
 export class List implements Definition, Nodeable, HasActions, HasNotifications {
-    description: string;
-    reference: string;
-    key: string[];
-    unbounded: boolean;
-    maxElements: number;
+    description?: string;
+    reference?: string;
+    key?: string[];
+    unbounded: boolean = true;
+    maxElements?: number;
     readonly dataDef: Definition[];
     readonly actions: Map<string, Action>;
     readonly notifys: Map<string, Notification>;
     private defs: Defs;
-    private _keyMeta: Leafable[];
+    private _keyMeta?: Leafable[];
 
     constructor(public parent: Meta, public ident: string) {
         this.dataDef = new Array<Definition>();
@@ -167,8 +177,8 @@ export class List implements Definition, Nodeable, HasActions, HasNotifications 
         return this.defs.choice(ident);
     }
 
-    get keyMeta(): Leafable[] {
-        if (this._keyMeta == null) {
+    get keyMeta(): (Leafable[] | undefined) {
+        if (this._keyMeta === undefined && this.key !== undefined) {
             this._keyMeta = new Array<Leafable>(this.key.length);
             for (let i = 0; i < this.key.length; i++) {
                 this._keyMeta[i] = this.definition(this.key[i]) as Leafable;
@@ -179,18 +189,18 @@ export class List implements Definition, Nodeable, HasActions, HasNotifications 
 }
 
 export class Action implements Definition {
-    description: string;
-    reference: string;
-    input: RpcInput;
-    output: RpcOutput;
+    description?: string;
+    reference?: string;
+    input?: RpcInput;
+    output?: RpcOutput;
 
     constructor(public parent: Meta, public ident: string) {
     }
 }
 
 export class RpcInput implements Nodeable {
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
     readonly dataDef: Definition[];
     private defs: Defs;
 
@@ -217,8 +227,8 @@ export class RpcInput implements Nodeable {
 }
 
 export class RpcOutput implements Meta {
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
     readonly dataDef: Definition[];
     private defs: Defs;
 
@@ -246,8 +256,8 @@ export class RpcOutput implements Meta {
 
 export class Notification implements Definition {
     readonly dataDef: Definition[];
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
     private defs: Defs;
 
     constructor(public parent: Meta, public ident: string) {
@@ -266,8 +276,8 @@ export class Notification implements Definition {
 
 export class Choice implements Definition {
     readonly cases: Map<string, ChoiceCase>;
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
 
     constructor(public parent: Meta, public ident: string) {
         this.cases = new Map<string, ChoiceCase>();
@@ -278,8 +288,8 @@ export class ChoiceCase implements Nodeable, HasNotifications, HasActions {
     readonly dataDef: Definition[];
     readonly actions: Map<string, Action>;
     readonly notifys: Map<string, Notification>;
-    description: string;
-    reference: string;
+    description?: string;
+    reference?: string;
     private defs: Defs;
 
     constructor(public parent: Meta, public ident: string) {
@@ -308,7 +318,7 @@ export function root(m: Meta): Module {
 
 
 class Defs {
-    private index: Map<string, Definition>;
+    private index?: Map<string, Definition>;
 
     constructor(
         public dataDef: Definition[],
@@ -341,7 +351,7 @@ class Defs {
         if (this.index === undefined) {
             this.index = new Map<string, Definition>();
             for (const d of this.dataDef) {
-                this.addIndex(d);
+                this.addIndex(this.index, d);
             }
         }
         const d = this.index.get(ident);
@@ -351,16 +361,16 @@ class Defs {
         throw new Error(ident + ' not found');
     }
 
-    private addIndex(d: Definition): void {
+    private addIndex(index: Map<string, Definition>, d: Definition): void {
         if (d instanceof Choice) {
             const ch = d as Choice;
             for (const [_, kase] of ch.cases) {
                 for (const def of kase.dataDef) {
-                    this.addIndex(def);
+                    this.addIndex(index, def);
                 }
             }
         } else {
-            this.index.set(d.ident, d);
+            index.set(d.ident, d);
         }
     }
 }

@@ -45,14 +45,16 @@ class Address {
         const parsed = new URL(url);
         this.base = parsed.origin + parsed.pathname;
         this.data = this.base + '/data';
+        this.host = parsed.host;
         this.stream = 'ws://' + this.host + '/restconf/streams';
         this.schema = this.base + '/schema';
         this.origin = parsed.origin;
-        this.host = parsed.host;
         this.deviceId = findDeviceIdInUrl(url);
     }
 }
 
+
+// TODO: only exported so it can be tested. way around that?
 export function findDeviceIdInUrl(url: string): string {
     const match = '/restconf=';
     const pos = url.indexOf(match);
@@ -67,6 +69,7 @@ class Client implements device.Device, RestClient {
     modules: Map<string, meta.Module>;
 
     constructor(public readonly addr: Address) {
+        this.modules = new Map<string, meta.Module>();
     }
 
     browser(module: string): node.Browser {
@@ -98,7 +101,7 @@ export interface RestClient {
 }
 
 export class ClientNode  {
-    private method: string;
+    private method?: string;
     private edit?: Promise<node.Node | null>;
     private changes?: node.Node;
     private valid?: boolean;
@@ -130,6 +133,9 @@ export class ClientNode  {
                 }
                 if (this.changes === undefined) {
                     throw new Error('no changes captured');
+                }
+                if (this.method === undefined) {
+                    throw new Error('illegal state');
                 }
                 return this.request(this.method, r.selection.path, r.selection.split(this.changes));
             },

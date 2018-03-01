@@ -118,7 +118,7 @@ function typeNode(t: meta.Type): node.Node {
         onField: function(p: node.Node, r: node.FieldRequest, hnd: node.ValueHandle) {
             switch (r.meta.ident) {
             case 'format':
-                if (r.write) {
+                if (r.write && hnd.val != undefined) {
                     t.format = (hnd.val.val as val.Enum).id as val.Format;
                 } else {
                     hnd.val = {val: types.byId(t.format), format: val.Format.Enum};
@@ -138,7 +138,7 @@ function leafyNode(d: meta.Leafable): node.Node {
             switch (r.meta.ident) {
             case 'type':
                 if (r.create) {
-                    d.type = new meta.Type();
+                    d.type = {} as meta.Type;
                 }
                 if (d.type != null) {
                     return typeNode(d.type);

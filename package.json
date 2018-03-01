@@ -23,15 +23,14 @@
     "test": "npm run build && wct --npm && npm run lint",
     "test_n": "./node_modules/.bin/mocha -r ts-node/register ./src/test/src_n_test.ts",
     "quicktest": "wct -l chrome -p --npm",
-    "checksize": "uglifyjs freeconf.js -mc --toplevel | gzip -9 | wc -c",
     "format": "find src test | grep '\\.js$\\|\\.ts$' | xargs clang-format --style=file -i",
     "lint": "tslint --project ./",
     "prepare": "npm run build"
   },
   "author": "Douglas Hubler",
   "devDependencies": {
-    "@types/chai": "^4.1.0",
-    "@types/mocha": "^2.2.46",
+    "@types/chai": "^4.1.2",
+    "@types/mocha": "^2.2.48",
     "@webcomponents/template": "^1.2.2",
     "babel-polyfill": "^6.26.0",
     "chai": "^4.1.2",
@@ -39,11 +38,13 @@
     "ts-node": "^4.1.0",
     "tslint": "^5.9.1",
     "typedoc": "^0.8.0",
-    "typescript": "^2.6.2",
-    "uglify-es": "^3.3.7",
+    "typescript": "^2.7.2",
+    "uglify-es": "^3.3.10",
     "wct-browser-legacy": "0.0.1-pre.11",
-    "web-component-tester": "^6.4.3"
+    "web-component-tester": "^6.5.0"
   },
   "typings": "freeconf.d.ts",
-  "dependencies": {}
+  "dependencies": {
+    "@types/lodash": "^4.14.104"
+  }
 }

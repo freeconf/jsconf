@@ -3,7 +3,7 @@ import * as n from '../node.js';
 
 console.log('extend.ts');
 
-export class Extend {
+export interface Extend {
     base: n.Node;
     onChild?: OnChild;
     onField?: OnField;

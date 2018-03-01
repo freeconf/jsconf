@@ -54,7 +54,7 @@ export function custom(self: Reflect): n.Node {
             return custom({...self, obj: val});
         },
         onField: function(r: n.FieldRequest, hnd: n.ValueHandle) {
-            if (r.write) {
+            if (r.write && hnd.val != undefined) {
                 self.obj[r.meta.ident] = hnd.val.val;
             } else {
                 hnd.val = n.value(r.meta, self.obj[r.meta.ident]);
@@ -108,7 +108,7 @@ function listMap(self: Reflect, x: Map<any, any>): n.Node {
                 if (r.row < i.length) {
                     item = i[r.row];
                     if (r.meta.keyMeta) {
-                        const keyVal = reflectProp(item, r.meta.key[0]);
+                        const keyVal = reflectProp(item, r.meta.keyMeta[0].ident);
                         key = n.values(r.meta.keyMeta, keyVal);    
                     }
                 }
@@ -131,8 +131,9 @@ function listArray(self: Reflect, x: any[]): n.Node {
             if (r.create) {
                 item = createListItem(r.selection, r.meta, self);
                 x.push(item);
-            } else if (key != null) {
+            } else if (key != null && r.meta.key) {
                 for (let i = 0; i < x.length; i++) {
+                    // TODO: support multiple keys
                     if (x[i][r.meta.key[0]] == key[0].val) {
                         item = x[i];
                         break;
@@ -140,8 +141,10 @@ function listArray(self: Reflect, x: any[]): n.Node {
                 }
             } else if (r.row < x.length) {
                 item = x[r.row];
-                const keyVal = reflectProp(item, r.meta.key[0]);
-                key = n.values(r.meta.keyMeta, keyVal);
+                if (r.meta.keyMeta) {
+                    const keyVal = reflectProp(item, r.meta.keyMeta[0].ident);
+                    key = n.values(r.meta.keyMeta, keyVal);    
+                }
             }
             if (item !== undefined) {
                 const n = custom({...self, obj: item});

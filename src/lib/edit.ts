@@ -12,8 +12,8 @@ console.log('edit.ts');
 class DefIterator {
     private dataDef: meta.Definition[];
     private pos: number = 0;
-    private nextDef: (meta.Definition|null);
-    private choiceIterator: (DefIterator|null);
+    private nextDef?: meta.Definition;
+    private choiceIterator?: DefIterator;
 
     constructor(public sel: node.Selection, nested?: meta.ChoiceCase) {
         if (nested == null) {
@@ -29,7 +29,7 @@ class DefIterator {
     }
 
     next(): meta.Definition {
-        if (this.nextDef == null) {
+        if (this.nextDef == undefined) {
             throw new Error('end of iterator');
         }
         const n = this.nextDef;
@@ -38,14 +38,14 @@ class DefIterator {
     }
 
     lookAhead(): void {
-        this.nextDef = null;
+        this.nextDef = undefined;
         while (true) {
             if (this.choiceIterator != null) {
                 if (this.choiceIterator.hasNext()) {
                     this.nextDef = this.choiceIterator.next();
                     return;
                 }
-                this.choiceIterator = null;
+                this.choiceIterator = undefined;
             }
             if (this.pos < this.dataDef.length) {
                 const n = this.dataDef[this.pos++];
@@ -63,7 +63,7 @@ class DefIterator {
 }
 
 export class Editor {
-    useDefault: boolean;
+    useDefault: boolean = false;
     constructor(public basePath: node.Path) {}
 
     async edit(from: node.Selection, to: node.Selection, strategy: strategy) {
