@@ -1,11 +1,11 @@
 
-import * as node from '../node.js';
-import * as basic from './basic.js';
-import * as extend from './extend.js';
-import * as reflect from './reflect.js';
-import * as nodes from '../nodes.js';
-import * as meta from '../meta.js';
-import * as val from '../val.js';
+import * as node from '../node';
+import * as basic from './basic';
+import * as extend from './extend';
+import * as reflect from './reflect';
+import * as nodes from '../nodes';
+import * as meta from '../meta';
+import * as val from '../val';
 
 console.log('schema.ts');
 

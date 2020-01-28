@@ -1,5 +1,5 @@
-import * as meta from './meta.js';
-import * as node from './node.js';
+import * as meta from './meta';
+import * as node from './node';
 
 export enum strategy {
     upsert,

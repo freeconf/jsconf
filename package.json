@@ -18,33 +18,32 @@
     "!/src/test/"
   ],
   "scripts": {
+    "start": "http-server -c-1 -p 8081",
     "build": "tsc",
     "gen-docs": "typedoc --readme none --mode modules --excludeNotExported --excludePrivate --exclude **/*_test.ts --out ./docs/api .",
-    "test": "npm run build && wct --npm && npm run lint",
-    "test_n": "./node_modules/.bin/mocha -r ts-node/register ./src/test/src_n_test.ts",
-    "quicktest": "wct -l chrome -p --npm",
+    "test": "mocha -r ts-node/register ./src/lib/*.spec.ts ./src/lib/**/*.spec.ts",
     "format": "find src test | grep '\\.js$\\|\\.ts$' | xargs clang-format --style=file -i",
     "lint": "tslint --project ./",
     "prepare": "npm run build"
   },
   "author": "Douglas Hubler",
   "devDependencies": {
-    "@types/chai": "^4.1.2",
-    "@types/mocha": "^2.2.48",
-    "@webcomponents/template": "^1.2.2",
-    "babel-polyfill": "^6.26.0",
-    "chai": "^4.1.2",
-    "mocha": "^3.5.3",
-    "ts-node": "^4.1.0",
-    "tslint": "^5.9.1",
-    "typedoc": "^0.8.0",
-    "typescript": "^2.7.2",
-    "uglify-es": "^3.3.10",
-    "wct-browser-legacy": "0.0.1-pre.11",
-    "web-component-tester": "^6.5.0"
+    "@types/chai": "^4.2.7",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^13.5.0",
+    "@types/node-fetch": "^2.5.4",
+    "chai": "^4.2.0",
+    "http-server": "^0.12.1",
+    "mocha": "^7.0.1",
+    "node-fetch": "^2.6.0",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5",
+    "typings": "^2.1.1"
   },
   "typings": "freeconf.d.ts",
   "dependencies": {
-    "@types/lodash": "^4.14.104"
+    "@types/node-fetch": "^2.5.4",
+    "es6-promise": "^4.2.8",
+    "es6-promises": "^1.0.10"
   }
 }

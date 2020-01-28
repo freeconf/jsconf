@@ -1,7 +1,7 @@
-import * as meta from '../meta.js';
-import * as n from '../node.js';
-import * as nodes from '../nodes.js';
-import * as basic from './basic.js';
+import * as meta from '../meta';
+import * as n from '../node';
+import * as nodes from '../nodes';
+import * as basic from './basic';
 
 console.log('reflect.ts');
 

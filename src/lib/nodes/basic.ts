@@ -1,5 +1,5 @@
-import * as meta from '../meta.js';
-import * as n from '../node.js';
+import * as meta from '../meta';
+import * as n from '../node';
 
 console.log('basic.ts');
 

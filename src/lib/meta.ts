@@ -1,5 +1,5 @@
 
-import * as val from './val.js';
+import * as val from './val';
 
 console.log('meta.ts');
 

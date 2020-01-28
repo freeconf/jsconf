@@ -1,25 +1,15 @@
 
-import * as meta from './meta.js';
-import * as schema from './nodes/schema.js';
-import * as src from './src.js';
+import * as meta from './meta';
+import * as schema from './nodes/schema';
+import {Source, arrayBuffer2Str} from './src';
 
 console.log('yang.ts');
 
-async function blobAsJson(b: Blob): Promise<any> {
-    return new Promise((resolve, reject) => {
-        const rdr = new FileReader();
-        rdr.addEventListener("loadend", () => {            
-            resolve(JSON.parse(rdr.result));
-        });
-        rdr.addEventListener("error", (err) => {
-            reject(err);
-        })
-        rdr.readAsText(b);            
-    });
-}
-
-export async function load(s: src.Source, name: string): Promise<meta.Module> {
-    const b = await s.load(name, '.yang');
-    const obj = await blobAsJson(b);
+export async function load(s: Source, name: string): Promise<meta.Module> {
+    // because we cannot parse yang files directly, we look for yang as
+    // json files converted using fc-doc command or web request to 
+    // https://{server}/restconf/schema/
+    const b = await s.load(name, '.json');
+    const obj = JSON.parse(arrayBuffer2Str(b));
     return await schema.load(obj);
 }

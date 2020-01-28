@@ -1,14 +1,13 @@
-/// <reference path='../../node_modules/@types/mocha/index.d.ts' />
-/// <reference path='../../node_modules/@types/chai/index.d.ts' />
 
-import * as nodes from '../lib/nodes.js';
-import * as reflect from '../lib/nodes/reflect.js';
-import * as schema from '../lib/nodes/schema.js';
-import * as node from '../lib/node.js';
+import * as nodes from '../nodes';
+import * as reflect from './reflect';
+import * as schema from './schema';
+import * as node from '../node';
+import { expect } from 'chai';
+import 'mocha';
 
-
-suite('reflect', () => {
-    test('write', async () => {
+describe('reflect', () => {
+    it('write', async () => {
         const mod = await schema.load({
             module: {
                 ident: "m",
@@ -38,7 +37,7 @@ suite('reflect', () => {
         });
         const b = new node.Browser(mod, n);
         const actual = await nodes.toJson(b.Root());
-        assert.equal('{"l":[{"id":"x"}]}', actual);''
+        expect(actual).to.equal('{"l":[{"id":"x"}]}');
     });
 });
 

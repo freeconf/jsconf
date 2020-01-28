@@ -1,10 +1,10 @@
 
-import * as d from './device.js';
-import * as node from './node.js';
-import * as reflect from './nodes/reflect.js';
-import * as meta from './meta.js';
-import * as src from './src.js';
-import * as yang from './yang.js';
+import * as d from './device';
+import * as node from './node';
+import * as reflect from './nodes/reflect';
+import * as meta from './meta';
+import * as src from './src';
+import * as yang from './yang';
 
 console.log("bird.ts");
 

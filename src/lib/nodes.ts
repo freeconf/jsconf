@@ -2,8 +2,8 @@
 
 
 
-import * as reflect from './nodes/reflect.js';
-import * as node from './node.js';
+import * as reflect from './nodes/reflect';
+import * as node from './node';
 
 
 export async function toJson(s: node.Selection): Promise<string> {

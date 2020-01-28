@@ -1,7 +1,7 @@
-import * as meta from './meta.js';
-import * as val from './val.js';
-import {Editor, strategy}  from './edit.js';
-import { Definition, Nodeable } from './meta.js';
+import * as meta from './meta';
+import * as val from './val';
+import {Editor, strategy}  from './edit';
+import { Definition, Nodeable } from './meta';
 
 console.log('node.ts');
 

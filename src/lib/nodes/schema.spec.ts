@@ -1,25 +1,25 @@
-/// <reference path='../../node_modules/@types/mocha/index.d.ts' />
-/// <reference path='../../node_modules/@types/chai/index.d.ts' />
 
-import * as meta from '../lib/meta.js';
-import * as schema from '../lib/nodes/schema.js';
-import * as val from '../lib/val.js';
-import * as node from '../lib/node.js';
-import * as reflect from '../lib/nodes/reflect.js';
-import { yangModule } from '../lib/nodes/schema.js';
+import * as meta from '../meta';
+import * as schema from './schema';
+import * as val from '../val';
+import * as node from '../node';
+import * as reflect from './reflect';
+import { yangModule } from './schema';
+import { expect } from 'chai';
+import 'mocha';
 
-suite('schema', () => {
+describe('schema', () => {
 
-    test('yang', () => {
+    it('yang', () => {
         const m = yangModule();
-        assert.equal('yang', m.ident);
+        expect(m.ident).to.equal('yang');
         const mdef = m.definition('module') as meta.Container;
         const ddef = mdef.definition('dataDef') as meta.List;
         const ldef = ddef.definition('leaf') as meta.Container;
-        assert.equal(5, ldef.dataDef.length);
+        expect(ldef.dataDef.length).to.equal(5);
     });
 
-    test('load', async () => {
+    it('load', async () => {
         const m = await schema.load({
             module: {
                 ident: 'm',
@@ -51,17 +51,17 @@ suite('schema', () => {
                 ]
             }
         });
-        assert.equal('m', m.ident);
-        assert.equal(2, m.dataDef.length);
+        expect(m.ident).to.equal('m');
+        expect(m.dataDef.length).to.equal(2);
         const l = (m.dataDef[0] as meta.Leaf);
-        assert.equal('l', l.ident);
+        expect( l.ident).to.equal('l');
         console.log(l.type);
-        assert.equal(val.Format.Str, l.type.format);
+        expect(l.type.format).to.equal(val.Format.Str);
         const c = (m.dataDef[1] as meta.Container);
-        assert.equal('c', c.ident);
+        expect(c.ident).to.equal('c');
     });
 
-    test('rw', async () => {
+    it('rw', async () => {
         const m = await schema.load({
             module: {
                 ident: 'x',

@@ -1,12 +1,12 @@
-import * as node from './node.js';
-import * as extend from './nodes/extend.js';
-import * as basic from './nodes/basic.js';
-import * as reflect from './nodes/reflect.js';
-import * as meta from './meta.js';
-import * as nodes from './nodes.js';
-import * as src from './src.js';
-import * as yang from './yang.js';
-import * as device from './device.js';
+import * as node from './node';
+import * as extend from './nodes/extend';
+import * as basic from './nodes/basic';
+import * as reflect from './nodes/reflect';
+import * as meta from './meta';
+import * as nodes from './nodes';
+import * as src from './src';
+import * as yang from './yang';
+import * as device from './device';
 
 console.log('restconf.ts');
 
@@ -92,7 +92,7 @@ class Client implements device.Device, RestClient {
             },
             body: payload
         });
-        return await reflect.node(await data.json());
+        return reflect.node(await data.json());
     }
 }
 

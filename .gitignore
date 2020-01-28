@@ -27,3 +27,4 @@ pids
 # Optional npm cache directory
 .npm
 
+build

@@ -1,8 +1,8 @@
-import * as node from './node.js';
-import * as reflect from './nodes/reflect.js';
-import * as extend from './nodes/extend.js';
-import * as basic from './nodes/basic.js';
-import * as meta from './meta.js';
+import * as node from './node';
+import * as reflect from './nodes/reflect';
+import * as extend from './nodes/extend';
+import * as basic from './nodes/basic';
+import * as meta from './meta';
 
 console.log('device.ts');
 
